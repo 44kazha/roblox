@@ -694,4 +694,4 @@ end
 ESPToggle.MouseButton1Click:Connect(function()
     ESPEnabled = not ESPEnabled
     ESPToggle.Text = "ESP: " .. (ESPEnabled and "ON" or "OFF")
-    ESPToggle.
+    ESPToggle.BackgroundColor3 = ESPEnabled and Colors.Button
