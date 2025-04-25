@@ -1,0 +1,375 @@
+-- Kazha Menu Cheat Script
+-- Features: ESP, Head-Only Aimbot, Wall Check, FOV Circle
+
+-- Erstelle die Hauptvariable für das GUI
+local KazhaMenu = {}
+local Players = game:GetService("Players")
+local LocalPlayer = Players.LocalPlayer
+local Mouse = LocalPlayer:GetMouse()
+local Camera = workspace.CurrentCamera
+local RunService = game:GetService("RunService")
+local UserInputService = game:GetService("UserInputService")
+
+-- Haupteinstellungen
+KazhaMenu.Settings = {
+    ESP = false,
+    Aimbot = false,
+    TeamCheck = true, -- Diese Einstellung bleibt im Code, wird aber nicht aktiv verwendet
+    WallCheck = true,
+    FOVCircle = true,
+    FOVRadius = 150,
+    AimbotKey = Enum.UserInputType.MouseButton2, -- Rechte Maustaste
+    ESPColor = {
+        Visible = Color3.fromRGB(0, 255, 0),   -- Grün wenn sichtbar
+        NotVisible = Color3.fromRGB(255, 0, 0) -- Rot wenn nicht sichtbar
+    }
+}
+
+-- Erstelle das GUI exakt wie im Bild
+local ScreenGui = Instance.new("ScreenGui")
+ScreenGui.Name = "KazhaMenu"
+ScreenGui.Parent = game.CoreGui
+ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+
+-- Hauptframe
+local MainFrame = Instance.new("Frame")
+MainFrame.Name = "MainFrame"
+MainFrame.Size = UDim2.new(0, 210, 0, 210)
+MainFrame.Position = UDim2.new(0.5, -105, 0.5, -105)
+MainFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 45)
+MainFrame.BorderSizePixel = 0
+MainFrame.Active = true
+MainFrame.Draggable = true
+MainFrame.Parent = ScreenGui
+
+-- Titel
+local TitleLabel = Instance.new("TextLabel")
+TitleLabel.Name = "Title"
+TitleLabel.Size = UDim2.new(1, 0, 0, 30)
+TitleLabel.Position = UDim2.new(0, 0, 0, 0)
+TitleLabel.BackgroundColor3 = Color3.fromRGB(60, 60, 80)
+TitleLabel.BorderSizePixel = 0
+TitleLabel.Text = "KAZHA MENU"
+TitleLabel.Font = Enum.Font.SourceSansBold
+TitleLabel.TextSize = 18
+TitleLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+TitleLabel.Parent = MainFrame
+
+-- Funktion zum Erstellen von Buttons
+local function CreateButton(name, position, color, textColor)
+    local button = Instance.new("TextButton")
+    button.Name = name
+    button.Size = UDim2.new(0.9, 0, 0, 30)
+    button.Position = position
+    button.BackgroundColor3 = color
+    button.BorderColor3 = Color3.fromRGB(20, 20, 30)
+    button.BorderSizePixel = 1
+    button.Text = name
+    button.Font = Enum.Font.SourceSans
+    button.TextSize = 16
+    button.TextColor3 = textColor
+    button.Parent = MainFrame
+    
+    return button
+end
+
+-- Buttons erstellen
+local ESPButton = CreateButton("ESP: OFF", UDim2.new(0.05, 0, 0, 40), Color3.fromRGB(30, 30, 45), Color3.fromRGB(255, 255, 255))
+local AimbotButton = CreateButton("Aimbot: OFF", UDim2.new(0.05, 0, 0, 75), Color3.fromRGB(30, 30, 45), Color3.fromRGB(255, 255, 255))
+local TeamCheckButton = CreateButton("Team Check: ON", UDim2.new(0.05, 0, 0, 110), Color3.fromRGB(90, 50, 255), Color3.fromRGB(255, 255, 255))
+local WallCheckButton = CreateButton("Wall Check: ON", UDim2.new(0.05, 0, 0, 145), Color3.fromRGB(90, 50, 255), Color3.fromRGB(255, 255, 255))
+local FOVCircleButton = CreateButton("FOV Circle: ON", UDim2.new(0.05, 0, 0, 180), Color3.fromRGB(90, 50, 255), Color3.fromRGB(255, 255, 255))
+local ExitButton = CreateButton("Exit", UDim2.new(0.05, 0, 0, 215), Color3.fromRGB(255, 50, 50), Color3.fromRGB(255, 255, 255))
+
+-- ESP-Funktionen
+local ESPObjects = {}
+
+function KazhaMenu:CreateESP()
+    for _, player in pairs(Players:GetPlayers()) do
+        if player ~= LocalPlayer then
+            if not ESPObjects[player] then
+                ESPObjects[player] = {
+                    Box = Drawing.new("Square"),
+                    Name = Drawing.new("Text")
+                }
+                
+                ESPObjects[player].Box.Thickness = 1
+                ESPObjects[player].Box.Filled = false
+                ESPObjects[player].Box.Transparency = 1
+                
+                ESPObjects[player].Name.Size = 14
+                ESPObjects[player].Name.Center = true
+                ESPObjects[player].Name.Outline = true
+            end
+        end
+    end
+    
+    Players.PlayerAdded:Connect(function(player)
+        ESPObjects[player] = {
+            Box = Drawing.new("Square"),
+            Name = Drawing.new("Text")
+        }
+        
+        ESPObjects[player].Box.Thickness = 1
+        ESPObjects[player].Box.Filled = false
+        ESPObjects[player].Box.Transparency = 1
+        
+        ESPObjects[player].Name.Size = 14
+        ESPObjects[player].Name.Center = true
+        ESPObjects[player].Name.Outline = true
+    end)
+    
+    Players.PlayerRemoving:Connect(function(player)
+        if ESPObjects[player] then
+            for _, object in pairs(ESPObjects[player]) do
+                object:Remove()
+            end
+            ESPObjects[player] = nil
+        end
+    end)
+end
+
+-- Wall Check Funktion
+function KazhaMenu:IsVisible(player)
+    local character = player.Character
+    local localCharacter = LocalPlayer.Character
+    
+    if not character or not localCharacter then return false end
+    
+    local HRPPosition = character:FindFirstChild("HumanoidRootPart") and character.HumanoidRootPart.Position
+    local HeadPosition = character:FindFirstChild("Head") and character.Head.Position
+    
+    if not HRPPosition or not HeadPosition then return false end
+    
+    local localHeadPosition = localCharacter:FindFirstChild("Head") and localCharacter.Head.Position
+    if not localHeadPosition then return false end
+    
+    local ray = Ray.new(localHeadPosition, (HeadPosition - localHeadPosition).Unit * 300)
+    local hit, position = workspace:FindPartOnRayWithIgnoreList(ray, {localCharacter})
+    
+    if hit and hit:IsDescendantOf(character) then
+        return true
+    end
+    
+    return false
+end
+
+-- FOV Circle
+local FOVCircle = Drawing.new("Circle")
+FOVCircle.Thickness = 2
+FOVCircle.Color = Color3.fromRGB(255, 255, 255)
+FOVCircle.NumSides = 60
+FOVCircle.Radius = KazhaMenu.Settings.FOVRadius
+FOVCircle.Filled = false
+FOVCircle.Transparency = 0.7
+FOVCircle.Visible = KazhaMenu.Settings.FOVCircle
+
+-- Aimbot-Funktionen
+local TargetPlayer = nil
+local IsAiming = false
+
+-- Geänderte Funktion, um gezielt nach dem Kopf zu suchen
+function KazhaMenu:GetClosestPlayerHeadToMouse()
+    local MaxDistance = KazhaMenu.Settings.FOVRadius
+    local Target = nil
+    local TargetHead = nil
+    
+    for _, player in pairs(Players:GetPlayers()) do
+        if player ~= LocalPlayer then
+            if player.Character and player.Character:FindFirstChild("Humanoid") and player.Character.Humanoid.Health > 0 and player.Character:FindFirstChild("Head") then
+                -- Wall Check (Team Check entfernt)
+                if KazhaMenu.Settings.WallCheck and not KazhaMenu:IsVisible(player) then
+                    continue
+                end
+                
+                -- Nun direkt auf den Kopf fokussieren
+                local head = player.Character.Head
+                local headScreenPos = Camera:WorldToScreenPoint(head.Position)
+                
+                if headScreenPos.Z > 0 then  -- Stellen Sie sicher, dass der Kopf vor der Kamera ist
+                    local distanceFromMouse = (Vector2.new(headScreenPos.X, headScreenPos.Y) - Vector2.new(Mouse.X, Mouse.Y)).Magnitude
+                    
+                    if distanceFromMouse < MaxDistance then
+                        MaxDistance = distanceFromMouse
+                        Target = player
+                        TargetHead = head
+                    end
+                end
+            end
+        end
+    end
+    
+    return Target, TargetHead
+end
+
+-- Änderung: MouseButton2 (rechte Maustaste) für Aimbot
+UserInputService.InputBegan:Connect(function(input)
+    if input.UserInputType == KazhaMenu.Settings.AimbotKey then
+        IsAiming = true
+    end
+end)
+
+UserInputService.InputEnded:Connect(function(input)
+    if input.UserInputType == KazhaMenu.Settings.AimbotKey then
+        IsAiming = false
+    end
+end)
+
+-- Button-Funktionen
+ESPButton.MouseButton1Click:Connect(function()
+    KazhaMenu.Settings.ESP = not KazhaMenu.Settings.ESP
+    ESPButton.Text = "ESP: " .. (KazhaMenu.Settings.ESP and "ON" or "OFF")
+    ESPButton.BackgroundColor3 = KazhaMenu.Settings.ESP and Color3.fromRGB(90, 50, 255) or Color3.fromRGB(30, 30, 45)
+end)
+
+AimbotButton.MouseButton1Click:Connect(function()
+    KazhaMenu.Settings.Aimbot = not KazhaMenu.Settings.Aimbot
+    AimbotButton.Text = "Aimbot: " .. (KazhaMenu.Settings.Aimbot and "ON" or "OFF")
+    AimbotButton.BackgroundColor3 = KazhaMenu.Settings.Aimbot and Color3.fromRGB(90, 50, 255) or Color3.fromRGB(30, 30, 45)
+end)
+
+TeamCheckButton.MouseButton1Click:Connect(function()
+    KazhaMenu.Settings.TeamCheck = not KazhaMenu.Settings.TeamCheck
+    TeamCheckButton.Text = "Team Check: " .. (KazhaMenu.Settings.TeamCheck and "ON" or "OFF")
+    TeamCheckButton.BackgroundColor3 = KazhaMenu.Settings.TeamCheck and Color3.fromRGB(90, 50, 255) or Color3.fromRGB(30, 30, 45)
+    -- Teamcheck bleibt im GUI, wird aber im Code nicht mehr berücksichtigt
+end)
+
+WallCheckButton.MouseButton1Click:Connect(function()
+    KazhaMenu.Settings.WallCheck = not KazhaMenu.Settings.WallCheck
+    WallCheckButton.Text = "Wall Check: " .. (KazhaMenu.Settings.WallCheck and "ON" or "OFF")
+    WallCheckButton.BackgroundColor3 = KazhaMenu.Settings.WallCheck and Color3.fromRGB(90, 50, 255) or Color3.fromRGB(30, 30, 45)
+end)
+
+FOVCircleButton.MouseButton1Click:Connect(function()
+    KazhaMenu.Settings.FOVCircle = not KazhaMenu.Settings.FOVCircle
+    FOVCircleButton.Text = "FOV Circle: " .. (KazhaMenu.Settings.FOVCircle and "ON" or "OFF")
+    FOVCircleButton.BackgroundColor3 = KazhaMenu.Settings.FOVCircle and Color3.fromRGB(90, 50, 255) or Color3.fromRGB(30, 30, 45)
+end)
+
+ExitButton.MouseButton1Click:Connect(function()
+    ScreenGui:Destroy()
+    for _, objects in pairs(ESPObjects) do
+        for _, object in pairs(objects) do
+            object:Remove()
+        end
+    end
+    FOVCircle:Remove()
+end)
+
+-- Main Loop
+RunService.RenderStepped:Connect(function()
+    -- Update FOV Circle
+    FOVCircle.Position = UserInputService:GetMouseLocation()
+    FOVCircle.Radius = KazhaMenu.Settings.FOVRadius
+    FOVCircle.Visible = KazhaMenu.Settings.FOVCircle
+    
+    -- Update ESP
+    if KazhaMenu.Settings.ESP then
+        for player, objects in pairs(ESPObjects) do
+            if player.Character and player.Character:FindFirstChild("HumanoidRootPart") and player.Character:FindFirstChild("Humanoid") and player.Character.Humanoid.Health > 0 then
+                local character = player.Character
+                local hrp = character.HumanoidRootPart
+                
+                -- TeamCheck entfernt - ESP für alle Spieler aktivieren
+                
+                -- Wall Check
+                local wallCheck = true
+                if KazhaMenu.Settings.WallCheck then
+                    wallCheck = KazhaMenu:IsVisible(player)
+                end
+                
+                -- Position auf dem Bildschirm
+                local vector, onScreen = Camera:WorldToViewportPoint(hrp.Position)
+                
+                if onScreen then -- TeamCheck entfernt
+                    -- ESP Box
+                    local rootPos = hrp.Position
+                    local headPos = character:FindFirstChild("Head") and character.Head.Position or (rootPos + Vector3.new(0, 3, 0))
+                    
+                    local headPos2D = Camera:WorldToViewportPoint(headPos)
+                    local rootPos2D = Camera:WorldToViewportPoint(rootPos)
+                    
+                    local boxSize = Vector2.new((headPos2D.Y - rootPos2D.Y) / 2, headPos2D.Y - rootPos2D.Y)
+                    
+                    objects.Box.Size = boxSize
+                    objects.Box.Position = Vector2.new(rootPos2D.X - boxSize.X / 2, rootPos2D.Y - boxSize.Y / 2)
+                    
+                    -- Farbe basierend auf Sichtbarkeit
+                    if wallCheck then
+                        objects.Box.Color = KazhaMenu.Settings.ESPColor.Visible -- Grün wenn sichtbar
+                    else
+                        objects.Box.Color = KazhaMenu.Settings.ESPColor.NotVisible -- Rot wenn nicht sichtbar
+                    end
+                    
+                    objects.Box.Visible = true
+                    
+                    -- Name
+                    objects.Name.Text = player.Name
+                    objects.Name.Position = Vector2.new(rootPos2D.X, rootPos2D.Y - boxSize.Y - 16)
+                    objects.Name.Color = objects.Box.Color
+                    objects.Name.Visible = true
+                else
+                    objects.Box.Visible = false
+                    objects.Name.Visible = false
+                end
+            else
+                objects.Box.Visible = false
+                objects.Name.Visible = false
+            end
+        end
+    else
+        for _, objects in pairs(ESPObjects) do
+            objects.Box.Visible = false
+            objects.Name.Visible = false
+        end
+    end
+    
+    -- Aimbot - jetzt nur aktiv, wenn rechte Maustaste gedrückt ist und NUR auf den Kopf zielen
+    if KazhaMenu.Settings.Aimbot and IsAiming then
+        local Target, TargetHead = KazhaMenu:GetClosestPlayerHeadToMouse()
+        if Target and TargetHead then
+            local HeadPosition = Camera:WorldToViewportPoint(TargetHead.Position)
+            if HeadPosition.Z > 0 then -- Stellen Sie sicher, dass der Kopf vor der Kamera ist
+                -- Bewege die Maus direkt zum Kopf des Ziels
+                mousemoverel((HeadPosition.X - Mouse.X) * 0.5, (HeadPosition.Y - Mouse.Y) * 0.5)
+            end
+        end
+    end
+end)
+
+-- Initialisierung
+KazhaMenu:CreateESP()
+
+-- Aimbot-Update von GitHub mit Wall Check, Rechter Maustaste und Kopfausrichtung
+local function loadExternalAimbot()
+    local AimbotScript = loadstring(game:HttpGet("https://raw.githubusercontent.com/Exunys/Aimbot-V3/refs/heads/main/src/Aimbot.lua"))()
+    
+    -- Konfiguriere den Aimbot
+    AimbotScript.Settings = {
+        Enabled = KazhaMenu.Settings.Aimbot,
+        TeamCheck = false, -- Teamcheck deaktiviert
+        AliveCheck = true,
+        WallCheck = KazhaMenu.Settings.WallCheck,
+        Sensitivity = 0,
+        ThirdPerson = false,
+        FirstPerson = true,
+        Key = Enum.UserInputType.MouseButton2, -- Rechte Maustaste
+        FOVCircle = false,
+        FOVRadius = KazhaMenu.Settings.FOVRadius,
+        ShowFOV = false,
+        TargetPart = "Head" -- Speziell nur auf den Kopf zielen
+    }
+    
+    -- Wir lassen unseren Aimbot es ersetzen
+    AimbotScript:Load()
+    
+    return AimbotScript
+end
+
+-- Versuchen, den externen Aimbot zu laden
+local success, AimbotModule = pcall(loadExternalAimbot)
+if not success then
+    -- Fallback zu unserem eigenen Aimbot wenn der externe nicht lädt
+    print("Externes Aimbot-Skript konnte nicht geladen werden. Verwende internen Aimbot.")
+end
