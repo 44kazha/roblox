@@ -1,0 +1,278 @@
+-- Kazha Menu Cheat Script
+-- Features: ESP, Aimbot, Team Check, Wall Check, FOV Circle
+
+local Library = loadstring(game:HttpGet("https://raw.githubusercontent.com/xHeptc/Kavo-UI-Library/main/source.lua"))()
+
+-- Haupteinstellungen
+local settings = {
+    ESP = false,
+    Aimbot = false,
+    TeamCheck = true,
+    WallCheck = true,
+    FOVCircle = true,
+    FOVRadius = 150,
+    AimbotKey = Enum.KeyCode.Q,
+    ESPColor = {
+        Visible = Color3.fromRGB(0, 255, 0),   -- Grün wenn sichtbar
+        NotVisible = Color3.fromRGB(255, 0, 0) -- Rot wenn nicht sichtbar
+    }
+}
+
+-- Erstelle das GUI
+local Window = Library.CreateLib("KAZHA MENU", "DarkTheme")
+
+-- Haupttab
+local MainTab = Window:NewTab("Main")
+local MainSection = MainTab:NewSection("Cheats")
+
+-- ESP Toggle Button
+MainSection:NewToggle("ESP: OFF", "Toggled!", function(state)
+    settings.ESP = state
+    if state then
+        for i,v in pairs(game:GetService("Players"):GetPlayers()) do
+            if v ~= game:GetService("Players").LocalPlayer then
+                createESP(v)
+            end
+        end
+    else
+        for i,v in pairs(game:GetService("Players"):GetPlayers()) do
+            if v ~= game:GetService("Players").LocalPlayer then
+                removeESP(v)
+            end
+        end
+    end
+end)
+
+-- Aimbot Toggle Button
+MainSection:NewToggle("Aimbot: OFF", "Toggled!", function(state)
+    settings.Aimbot = state
+    if state then
+        loadAimbot()
+    else
+        unloadAimbot()
+    end
+end)
+
+-- Team Check Toggle Button
+MainSection:NewToggle("Team Check: ON", "Toggled!", function(state)
+    settings.TeamCheck = state
+end)
+
+-- Wall Check Toggle Button
+MainSection:NewToggle("Wall Check: ON", "Toggled!", function(state)
+    settings.WallCheck = state
+end)
+
+-- FOV Circle Toggle Button
+MainSection:NewToggle("FOV Circle: ON", "Toggled!", function(state)
+    settings.FOVCircle = state
+    if fovCircle then
+        fovCircle.Visible = state
+    end
+end)
+
+-- Exit Button
+MainSection:NewButton("Exit", "Exits the GUI", function()
+    Library:ToggleUI()
+end)
+
+-- ESP-Funktionen
+local ESPFolder = Instance.new("Folder", game.CoreGui)
+ESPFolder.Name = "ESPFolder"
+
+local playerESP = {}
+
+function createESP(player)
+    if playerESP[player] then return end
+    
+    local esp = {}
+    esp.Box = Drawing.new("Square")
+    esp.Box.Thickness = 1
+    esp.Box.Filled = false
+    esp.Box.Transparency = 1
+    
+    esp.Name = Drawing.new("Text")
+    esp.Name.Size = 14
+    esp.Name.Center = true
+    esp.Name.Outline = true
+    
+    playerESP[player] = esp
+end
+
+function removeESP(player)
+    if playerESP[player] then
+        for _, drawing in pairs(playerESP[player]) do
+            if drawing then
+                drawing:Remove()
+            end
+        end
+        playerESP[player] = nil
+    end
+end
+
+-- FOV Circle
+local fovCircle = Drawing.new("Circle")
+fovCircle.Thickness = 2
+fovCircle.Color = Color3.fromRGB(255, 255, 255)
+fovCircle.NumSides = 60
+fovCircle.Radius = settings.FOVRadius
+fovCircle.Filled = false
+fovCircle.Transparency = 0.7
+fovCircle.Visible = settings.FOVCircle
+
+-- Wall Check Funktion
+function isVisible(part)
+    local character = game:GetService("Players").LocalPlayer.Character
+    if not character or not character:FindFirstChild("Head") then return false end
+    
+    local ray = Ray.new(character.Head.Position, (part.Position - character.Head.Position).Unit * 300)
+    local hit, position = workspace:FindPartOnRayWithIgnoreList(ray, {character})
+    
+    if hit and hit:IsDescendantOf(part.Parent) then
+        return true
+    end
+    
+    return false
+end
+
+-- Aimbot-Funktionen
+local AimbotLoaded = false
+local AimbotScript = nil
+
+function loadAimbot()
+    if AimbotLoaded then return end
+    
+    local AimbotModule = loadstring(game:HttpGet("https://raw.githubusercontent.com/Exunys/Aimbot-V3/refs/heads/main/src/Aimbot.lua"))()
+    
+    -- Konfiguriere den Aimbot
+    AimbotModule.Settings = {
+        Enabled = true,
+        TeamCheck = settings.TeamCheck,
+        AliveCheck = true,
+        WallCheck = settings.WallCheck,
+        Sensitivity = 0, -- Sofortige Zielausrichtung
+        ThirdPerson = false,
+        FirstPerson = true,
+        Key = settings.AimbotKey,
+        FOVCircle = false, -- Wir benutzen unseren eigenen FOV Circle
+        FOVRadius = settings.FOVRadius,
+        ShowFOV = settings.FOVCircle,
+        FOVColor = Color3.fromRGB(255, 255, 255)
+    }
+    
+    AimbotModule:Load()
+    AimbotLoaded = true
+    AimbotScript = AimbotModule
+end
+
+function unloadAimbot()
+    if AimbotScript and AimbotLoaded then
+        AimbotScript:Unload()
+        AimbotLoaded = false
+    end
+end
+
+-- Update ESP Farben basierend auf Sichtbarkeit
+game:GetService("RunService").RenderStepped:Connect(function()
+    if settings.ESP then
+        for player, espDrawings in pairs(playerESP) do
+            if player and player.Character and player.Character:FindFirstChild("HumanoidRootPart") and player.Character:FindFirstChild("Humanoid") and player.Character.Humanoid.Health > 0 then
+                local character = player.Character
+                local hrp = character.HumanoidRootPart
+                local humanoid = character.Humanoid
+                
+                -- Team Check
+                local teamCheck = true
+                if settings.TeamCheck and player.Team == game:GetService("Players").LocalPlayer.Team then
+                    teamCheck = false
+                end
+                
+                -- Wall Check
+                local wallCheck = true
+                if settings.WallCheck then
+                    wallCheck = isVisible(hrp)
+                end
+                
+                -- Position des Spielers auf dem Bildschirm berechnen
+                local vector, onScreen = workspace.CurrentCamera:WorldToViewportPoint(hrp.Position)
+                
+                if onScreen and teamCheck then
+                    -- ESP Box anzeigen
+                    local rootPos = hrp.Position
+                    local headPos = character:FindFirstChild("Head") and character.Head.Position or (rootPos + Vector3.new(0, 3, 0))
+                    
+                    local headPos2D = workspace.CurrentCamera:WorldToViewportPoint(headPos)
+                    local rootPos2D = workspace.CurrentCamera:WorldToViewportPoint(rootPos)
+                    
+                    local boxSize = Vector2.new((headPos2D.Y - rootPos2D.Y) / 2, headPos2D.Y - rootPos2D.Y)
+                    
+                    espDrawings.Box.Size = boxSize
+                    espDrawings.Box.Position = Vector2.new(rootPos2D.X - boxSize.X / 2, rootPos2D.Y - boxSize.Y / 2)
+                    
+                    -- ESP Farbe basierend auf Sichtbarkeit
+                    if wallCheck then
+                        espDrawings.Box.Color = settings.ESPColor.Visible -- Grün wenn sichtbar
+                    else
+                        espDrawings.Box.Color = settings.ESPColor.NotVisible -- Rot wenn nicht sichtbar
+                    end
+                    
+                    espDrawings.Box.Visible = true
+                    
+                    -- Name anzeigen
+                    espDrawings.Name.Text = player.Name
+                    espDrawings.Name.Position = Vector2.new(rootPos2D.X, rootPos2D.Y - boxSize.Y - 16)
+                    espDrawings.Name.Color = espDrawings.Box.Color
+                    espDrawings.Name.Visible = true
+                else
+                    espDrawings.Box.Visible = false
+                    espDrawings.Name.Visible = false
+                end
+            else
+                espDrawings.Box.Visible = false
+                espDrawings.Name.Visible = false
+            end
+        end
+    end
+    
+    -- FOV Circle aktualisieren
+    if settings.FOVCircle and fovCircle then
+        fovCircle.Position = game:GetService("UserInputService"):GetMouseLocation()
+        fovCircle.Radius = settings.FOVRadius
+        fovCircle.Visible = true
+    else
+        fovCircle.Visible = false
+    end
+end)
+
+-- Player hinzufügen/entfernen Events
+game:GetService("Players").PlayerAdded:Connect(function(player)
+    if settings.ESP and player ~= game:GetService("Players").LocalPlayer then
+        createESP(player)
+    end
+end)
+
+game:GetService("Players").PlayerRemoving:Connect(function(player)
+    removeESP(player)
+end)
+
+-- Beim Start alle Spieler durchgehen und ESP erstellen
+for _, player in pairs(game:GetService("Players"):GetPlayers()) do
+    if player ~= game:GetService("Players").LocalPlayer then
+        createESP(player)
+    end
+end
+
+-- Funktion zum Sauber Beenden
+game:GetService("CoreGui").ChildRemoved:Connect(function(child)
+    if child == ESPFolder then
+        for _, player in pairs(game:GetService("Players"):GetPlayers()) do
+            removeESP(player)
+        end
+        
+        if fovCircle then
+            fovCircle:Remove()
+        end
+        
+        unloadAimbot()
+    end
+end)
