@@ -1,0 +1,142 @@
+-- Kazha Menu Cheat Script
+-- Features: ESP, Head-Only Aimbot, Wall Check, FOV Circle
+
+-- Erstelle die Hauptvariable für das GUI
+local KazhaMenu = {}
+local Players = game:GetService("Players")
+local LocalPlayer = Players.LocalPlayer
+local Mouse = LocalPlayer:GetMouse()
+local Camera = workspace.CurrentCamera
+local RunService = game:GetService("RunService")
+local UserInputService = game:GetService("UserInputService")
+
+-- Haupteinstellungen
+KazhaMenu.Settings = {
+    ESP = false,
+    Aimbot = false,
+    TeamCheck = true, -- Diese Einstellung bleibt im Code, wird aber nicht aktiv verwendet
+    WallCheck = true,
+    FOVCircle = true,
+    FOVRadius = 150,
+    AimbotKey = Enum.UserInputType.MouseButton2, -- Rechte Maustaste
+    ESPColor = {
+        Visible = Color3.fromRGB(0, 255, 0),   -- Grün wenn sichtbar
+        NotVisible = Color3.fromRGB(255, 0, 0) -- Rot wenn nicht sichtbar
+    }
+}
+
+-- Erstelle das GUI exakt wie im Bild
+local ScreenGui = Instance.new("ScreenGui")
+ScreenGui.Name = "KazhaMenu"
+ScreenGui.Parent = game.CoreGui
+ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+
+-- Hauptframe
+local MainFrame = Instance.new("Frame")
+MainFrame.Name = "MainFrame"
+MainFrame.Size = UDim2.new(0, 210, 0, 210)
+MainFrame.Position = UDim2.new(0.5, -105, 0.5, -105)
+MainFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 45)
+MainFrame.BorderSizePixel = 0
+MainFrame.Active = true
+MainFrame.Draggable = true
+MainFrame.Parent = ScreenGui
+
+-- Titel
+local TitleLabel = Instance.new("TextLabel")
+TitleLabel.Name = "Title"
+TitleLabel.Size = UDim2.new(1, 0, 0, 30)
+TitleLabel.Position = UDim2.new(0, 0, 0, 0)
+TitleLabel.BackgroundColor3 = Color3.fromRGB(60, 60, 80)
+TitleLabel.BorderSizePixel = 0
+TitleLabel.Text = "KAZHA MENU"
+TitleLabel.Font = Enum.Font.SourceSansBold
+TitleLabel.TextSize = 18
+TitleLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+TitleLabel.Parent = MainFrame
+
+-- Funktion zum Erstellen von Buttons
+local function CreateButton(name, position, color, textColor)
+    local button = Instance.new("TextButton")
+    button.Name = name
+    button.Size = UDim2.new(0.9, 0, 0, 30)
+    button.Position = position
+    button.BackgroundColor3 = color
+    button.BorderColor3 = Color3.fromRGB(20, 20, 30)
+    button.BorderSizePixel = 1
+    button.Text = name
+    button.Font = Enum.Font.SourceSans
+    button.TextSize = 16
+    button.TextColor3 = textColor
+    button.Parent = MainFrame
+    
+    return button
+end
+
+-- Buttons erstellen
+local ESPButton = CreateButton("ESP: OFF", UDim2.new(0.05, 0, 0, 40), Color3.fromRGB(30, 30, 45), Color3.fromRGB(255, 255, 255))
+local AimbotButton = CreateButton("Aimbot: OFF", UDim2.new(0.05, 0, 0, 75), Color3.fromRGB(30, 30, 45), Color3.fromRGB(255, 255, 255))
+local TeamCheckButton = CreateButton("Team Check: ON", UDim2.new(0.05, 0, 0, 110), Color3.fromRGB(90, 50, 255), Color3.fromRGB(255, 255, 255))
+local WallCheckButton = CreateButton("Wall Check: ON", UDim2.new(0.05, 0, 0, 145), Color3.fromRGB(90, 50, 255), Color3.fromRGB(255, 255, 255))
+local FOVCircleButton = CreateButton("FOV Circle: ON", UDim2.new(0.05, 0, 0, 180), Color3.fromRGB(90, 50, 255), Color3.fromRGB(255, 255, 255))
+local ExitButton = CreateButton("Exit", UDim2.new(0.05, 0, 0, 215), Color3.fromRGB(255, 50, 50), Color3.fromRGB(255, 255, 255))
+
+-- ESP-Funktionen
+local ESPObjects = {}
+
+function KazhaMenu:CreateESP()
+    for _, player in pairs(Players:GetPlayers()) do
+        if player ~= LocalPlayer then
+            if not ESPObjects[player] then
+                ESPObjects[player] = {
+                    Box = Drawing.new("Square"),
+                    Name = Drawing.new("Text")
+                }
+                
+                ESPObjects[player].Box.Thickness = 1
+                ESPObjects[player].Box.Filled = false
+                ESPObjects[player].Box.Transparency = 1
+                
+                ESPObjects[player].Name.Size = 14
+                ESPObjects[player].Name.Center = true
+                ESPObjects[player].Name.Outline = true
+            end
+        end
+    end
+    
+    Players.PlayerAdded:Connect(function(player)
+        ESPObjects[player] = {
+            Box = Drawing.new("Square"),
+            Name = Drawing.new("Text")
+        }
+        
+        ESPObjects[player].Box.Thickness = 1
+        ESPObjects[player].Box.Filled = false
+        ESPObjects[player].Box.Transparency = 1
+        
+        ESPObjects[player].Name.Size = 14
+        ESPObjects[player].Name.Center = true
+        ESPObjects[player].Name.Outline = true
+    end)
+    
+    Players.PlayerRemoving:Connect(function(player)
+        if ESPObjects[player] then
+            for _, object in pairs(ESPObjects[player]) do
+                object:Remove()
+            end
+            ESPObjects[player] = nil
+        end
+    end)
+end
+
+-- Wall Check Funktion
+function KazhaMenu:IsVisible(player)
+    local character = player.Character
+    local localCharacter = LocalPlayer.Character
+    
+    if not character or not localCharacter then return false end
+    
+    local HRPPosition = character:FindFirstChild("HumanoidRootPart") and character.HumanoidRootPart.Position
+    local HeadPosition = character:FindFirstChild("Head") and character.Head.Position
+    
+    if not HRPPosition or not HeadPosition then return false end
