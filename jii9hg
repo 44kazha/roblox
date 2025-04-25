@@ -1,0 +1,417 @@
+-- Roblox Aimbot GUI
+
+-- GUI Erstellen
+local ScreenGui = Instance.new("ScreenGui")
+local MainFrame = Instance.new("Frame")
+local Title = Instance.new("TextLabel")
+local EnableButton = Instance.new("TextButton")
+local DisableButton = Instance.new("TextButton")
+local SettingsFrame = Instance.new("Frame")
+local SensitivitySlider = Instance.new("Frame")
+local SliderButton = Instance.new("TextButton")
+local SliderFrame = Instance.new("Frame")
+local SensitivityLabel = Instance.new("TextLabel")
+local SensitivityValue = Instance.new("TextLabel")
+local FOVSlider = Instance.new("Frame")
+local FOVSliderButton = Instance.new("TextButton")
+local FOVSliderFrame = Instance.new("Frame")
+local FOVLabel = Instance.new("TextLabel")
+local FOVValue = Instance.new("TextLabel")
+local TeamCheckBox = Instance.new("TextButton")
+local TeamCheckLabel = Instance.new("TextLabel")
+local VisibilityCheckBox = Instance.new("TextButton")
+local VisibilityCheckLabel = Instance.new("TextLabel")
+
+-- Eigenschaften setzen
+ScreenGui.Parent = game.CoreGui
+ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+
+MainFrame.Name = "MainFrame"
+MainFrame.Parent = ScreenGui
+MainFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+MainFrame.BorderSizePixel = 0
+MainFrame.Position = UDim2.new(0.5, -150, 0.5, -125)
+MainFrame.Size = UDim2.new(0, 300, 0, 250)
+MainFrame.Active = true
+MainFrame.Draggable = true
+
+Title.Name = "Title"
+Title.Parent = MainFrame
+Title.BackgroundColor3 = Color3.fromRGB(45, 45, 45)
+Title.BorderSizePixel = 0
+Title.Size = UDim2.new(1, 0, 0, 30)
+Title.Font = Enum.Font.SourceSansBold
+Title.Text = "Aimbot V3"
+Title.TextColor3 = Color3.fromRGB(255, 255, 255)
+Title.TextSize = 18.000
+
+EnableButton.Name = "EnableButton"
+EnableButton.Parent = MainFrame
+EnableButton.BackgroundColor3 = Color3.fromRGB(0, 120, 0)
+EnableButton.BorderSizePixel = 0
+EnableButton.Position = UDim2.new(0.1, 0, 0.85, 0)
+EnableButton.Size = UDim2.new(0.35, 0, 0, 25)
+EnableButton.Font = Enum.Font.SourceSans
+EnableButton.Text = "Enable"
+EnableButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+EnableButton.TextSize = 14.000
+
+DisableButton.Name = "DisableButton"
+DisableButton.Parent = MainFrame
+DisableButton.BackgroundColor3 = Color3.fromRGB(120, 0, 0)
+DisableButton.BorderSizePixel = 0
+DisableButton.Position = UDim2.new(0.55, 0, 0.85, 0)
+DisableButton.Size = UDim2.new(0.35, 0, 0, 25)
+DisableButton.Font = Enum.Font.SourceSans
+DisableButton.Text = "Disable"
+DisableButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+DisableButton.TextSize = 14.000
+
+SettingsFrame.Name = "SettingsFrame"
+SettingsFrame.Parent = MainFrame
+SettingsFrame.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
+SettingsFrame.BorderSizePixel = 0
+SettingsFrame.Position = UDim2.new(0, 10, 0, 40)
+SettingsFrame.Size = UDim2.new(1, -20, 0, 160)
+
+-- Sensitivity Slider
+SensitivitySlider.Name = "SensitivitySlider"
+SensitivitySlider.Parent = SettingsFrame
+SensitivitySlider.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+SensitivitySlider.BorderSizePixel = 0
+SensitivitySlider.Position = UDim2.new(0, 10, 0, 10)
+SensitivitySlider.Size = UDim2.new(1, -20, 0, 30)
+
+SensitivityLabel.Name = "SensitivityLabel"
+SensitivityLabel.Parent = SensitivitySlider
+SensitivityLabel.BackgroundTransparency = 1
+SensitivityLabel.Position = UDim2.new(0, 5, 0, 0)
+SensitivityLabel.Size = UDim2.new(0.4, 0, 1, 0)
+SensitivityLabel.Font = Enum.Font.SourceSans
+SensitivityLabel.Text = "Sensitivity"
+SensitivityLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+SensitivityLabel.TextSize = 14.000
+SensitivityLabel.TextXAlignment = Enum.TextXAlignment.Left
+
+SliderFrame.Name = "SliderFrame"
+SliderFrame.Parent = SensitivitySlider
+SliderFrame.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
+SliderFrame.BorderSizePixel = 0
+SliderFrame.Position = UDim2.new(0.4, 10, 0.5, -3)
+SliderFrame.Size = UDim2.new(0.5, -40, 0, 6)
+
+SliderButton.Name = "SliderButton"
+SliderButton.Parent = SliderFrame
+SliderButton.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+SliderButton.BorderSizePixel = 0
+SliderButton.Position = UDim2.new(0.5, -6, 0.5, -6)
+SliderButton.Size = UDim2.new(0, 12, 0, 12)
+SliderButton.Text = ""
+
+SensitivityValue.Name = "SensitivityValue"
+SensitivityValue.Parent = SensitivitySlider
+SensitivityValue.BackgroundTransparency = 1
+SensitivityValue.Position = UDim2.new(0.9, 0, 0, 0)
+SensitivityValue.Size = UDim2.new(0.1, 0, 1, 0)
+SensitivityValue.Font = Enum.Font.SourceSans
+SensitivityValue.Text = "0.5"
+SensitivityValue.TextColor3 = Color3.fromRGB(255, 255, 255)
+SensitivityValue.TextSize = 14.000
+SensitivityValue.TextXAlignment = Enum.TextXAlignment.Right
+
+-- FOV Slider
+FOVSlider.Name = "FOVSlider"
+FOVSlider.Parent = SettingsFrame
+FOVSlider.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+FOVSlider.BorderSizePixel = 0
+FOVSlider.Position = UDim2.new(0, 10, 0, 50)
+FOVSlider.Size = UDim2.new(1, -20, 0, 30)
+
+FOVLabel.Name = "FOVLabel"
+FOVLabel.Parent = FOVSlider
+FOVLabel.BackgroundTransparency = 1
+FOVLabel.Position = UDim2.new(0, 5, 0, 0)
+FOVLabel.Size = UDim2.new(0.4, 0, 1, 0)
+FOVLabel.Font = Enum.Font.SourceSans
+FOVLabel.Text = "FOV"
+FOVLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+FOVLabel.TextSize = 14.000
+FOVLabel.TextXAlignment = Enum.TextXAlignment.Left
+
+FOVSliderFrame.Name = "FOVSliderFrame"
+FOVSliderFrame.Parent = FOVSlider
+FOVSliderFrame.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
+FOVSliderFrame.BorderSizePixel = 0
+FOVSliderFrame.Position = UDim2.new(0.4, 10, 0.5, -3)
+FOVSliderFrame.Size = UDim2.new(0.5, -40, 0, 6)
+
+FOVSliderButton.Name = "FOVSliderButton"
+FOVSliderButton.Parent = FOVSliderFrame
+FOVSliderButton.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+FOVSliderButton.BorderSizePixel = 0
+FOVSliderButton.Position = UDim2.new(0.5, -6, 0.5, -6)
+FOVSliderButton.Size = UDim2.new(0, 12, 0, 12)
+FOVSliderButton.Text = ""
+
+FOVValue.Name = "FOVValue"
+FOVValue.Parent = FOVSlider
+FOVValue.BackgroundTransparency = 1
+FOVValue.Position = UDim2.new(0.9, 0, 0, 0)
+FOVValue.Size = UDim2.new(0.1, 0, 1, 0)
+FOVValue.Font = Enum.Font.SourceSans
+FOVValue.Text = "100"
+FOVValue.TextColor3 = Color3.fromRGB(255, 255, 255)
+FOVValue.TextSize = 14.000
+FOVValue.TextXAlignment = Enum.TextXAlignment.Right
+
+-- Team Check Box
+TeamCheckBox.Name = "TeamCheckBox"
+TeamCheckBox.Parent = SettingsFrame
+TeamCheckBox.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+TeamCheckBox.BorderSizePixel = 0
+TeamCheckBox.Position = UDim2.new(0, 10, 0, 90)
+TeamCheckBox.Size = UDim2.new(0, 20, 0, 20)
+TeamCheckBox.Font = Enum.Font.SourceSans
+TeamCheckBox.Text = ""
+TeamCheckBox.TextColor3 = Color3.fromRGB(255, 255, 255)
+TeamCheckBox.TextSize = 14.000
+
+TeamCheckLabel.Name = "TeamCheckLabel"
+TeamCheckLabel.Parent = SettingsFrame
+TeamCheckLabel.BackgroundTransparency = 1
+TeamCheckLabel.Position = UDim2.new(0, 40, 0, 90)
+TeamCheckLabel.Size = UDim2.new(0, 200, 0, 20)
+TeamCheckLabel.Font = Enum.Font.SourceSans
+TeamCheckLabel.Text = "Team Check"
+TeamCheckLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+TeamCheckLabel.TextSize = 14.000
+TeamCheckLabel.TextXAlignment = Enum.TextXAlignment.Left
+
+-- Visibility Check Box
+VisibilityCheckBox.Name = "VisibilityCheckBox"
+VisibilityCheckBox.Parent = SettingsFrame
+VisibilityCheckBox.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+VisibilityCheckBox.BorderSizePixel = 0
+VisibilityCheckBox.Position = UDim2.new(0, 10, 0, 120)
+VisibilityCheckBox.Size = UDim2.new(0, 20, 0, 20)
+VisibilityCheckBox.Font = Enum.Font.SourceSans
+VisibilityCheckBox.Text = ""
+VisibilityCheckBox.TextColor3 = Color3.fromRGB(255, 255, 255)
+VisibilityCheckBox.TextSize = 14.000
+
+VisibilityCheckLabel.Name = "VisibilityCheckLabel"
+VisibilityCheckLabel.Parent = SettingsFrame
+VisibilityCheckLabel.BackgroundTransparency = 1
+VisibilityCheckLabel.Position = UDim2.new(0, 40, 0, 120)
+VisibilityCheckLabel.Size = UDim2.new(0, 200, 0, 20)
+VisibilityCheckLabel.Font = Enum.Font.SourceSans
+VisibilityCheckLabel.Text = "Visibility Check"
+VisibilityCheckLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+VisibilityCheckLabel.TextSize = 14.000
+VisibilityCheckLabel.TextXAlignment = Enum.TextXAlignment.Left
+
+-- Aimbot Script laden
+local AimbotScript = nil
+
+local function loadAimbotScript()
+    local success, result = pcall(function()
+        -- HTTP Anfrage zum Laden des Scripts
+        local HttpService = game:GetService("HttpService")
+        return HttpService:GetAsync("https://raw.githubusercontent.com/Exunys/Aimbot-V3/refs/heads/main/src/Aimbot.lua")
+    end)
+    
+    if success then
+        AimbotScript = result
+        print("Aimbot-Script erfolgreich geladen")
+        return true
+    else
+        warn("Fehler beim Laden des Aimbot-Scripts: " .. tostring(result))
+        return false
+    end
+end
+
+-- Aimbot Variablen
+local AimbotEnabled = false
+local AimbotSettings = {
+    Sensitivity = 0.5,
+    FOV = 100,
+    TeamCheck = false,
+    VisibilityCheck = false
+}
+
+-- GUI Funktionalität
+local function updateGuiState()
+    -- Checkbox-Zustände aktualisieren
+    if AimbotSettings.TeamCheck then
+        TeamCheckBox.Text = "✓"
+    else
+        TeamCheckBox.Text = ""
+    end
+    
+    if AimbotSettings.VisibilityCheck then
+        VisibilityCheckBox.Text = "✓"
+    else
+        VisibilityCheckBox.Text = ""
+    end
+    
+    -- Slider-Positionen aktualisieren
+    SliderButton.Position = UDim2.new(AimbotSettings.Sensitivity, -6, 0.5, -6)
+    SensitivityValue.Text = tostring(AimbotSettings.Sensitivity)
+    
+    local fovPosition = (AimbotSettings.FOV - 30) / 170  -- FOV Range: 30-200
+    FOVSliderButton.Position = UDim2.new(fovPosition, -6, 0.5, -6)
+    FOVValue.Text = tostring(AimbotSettings.FOV)
+end
+
+-- Slider-Drag-Funktionalität
+local function setupSlider(slider, sliderFrame, valueText, min, max, settingName)
+    local dragging = false
+    
+    sliderFrame.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 then
+            dragging = true
+        end
+    end)
+    
+    sliderFrame.InputEnded:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 then
+            dragging = false
+        end
+    end)
+    
+    slider.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 then
+            dragging = true
+        end
+    end)
+    
+    slider.InputEnded:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 then
+            dragging = false
+        end
+    end)
+    
+    game:GetService("UserInputService").InputChanged:Connect(function(input)
+        if dragging and input.UserInputType == Enum.UserInputType.MouseMovement then
+            local sliderPosition = sliderFrame.AbsolutePosition.X
+            local sliderWidth = sliderFrame.AbsoluteSize.X
+            local mousePosition = input.Position.X
+            
+            local position = math.clamp((mousePosition - sliderPosition) / sliderWidth, 0, 1)
+            slider.Position = UDim2.new(position, -6, 0.5, -6)
+            
+            local value = min + (max - min) * position
+            value = math.floor(value * 100) / 100  -- Auf 2 Dezimalstellen runden
+            
+            valueText.Text = tostring(value)
+            AimbotSettings[settingName] = value
+            
+            -- Aimbot-Einstellungen aktualisieren, wenn aktiv
+            if AimbotEnabled and AimbotScript then
+                updateAimbotSettings()
+            end
+        end
+    end)
+end
+
+-- Setup für die Slider
+setupSlider(SliderButton, SliderFrame, SensitivityValue, 0, 1, "Sensitivity")
+setupSlider(FOVSliderButton, FOVSliderFrame, FOVValue, 30, 200, "FOV")
+
+-- Checkbox-Funktionen
+local function setupCheckbox(checkbox, settingName)
+    checkbox.MouseButton1Click:Connect(function()
+        AimbotSettings[settingName] = not AimbotSettings[settingName]
+        
+        if AimbotSettings[settingName] then
+            checkbox.Text = "✓"
+        else
+            checkbox.Text = ""
+        end
+        
+        -- Aimbot-Einstellungen aktualisieren, wenn aktiv
+        if AimbotEnabled and AimbotScript then
+            updateAimbotSettings()
+        end
+    end)
+end
+
+setupCheckbox(TeamCheckBox, "TeamCheck")
+setupCheckbox(VisibilityCheckBox, "VisibilityCheck")
+
+-- Aimbot-Funktionalität
+local function enableAimbot()
+    if not AimbotScript then
+        local loaded = loadAimbotScript()
+        if not loaded then
+            return
+        end
+    end
+    
+    -- Aimbot script ausführen
+    if AimbotScript then
+        AimbotEnabled = true
+        local func, err = loadstring(AimbotScript)
+        if func then
+            func()
+            print("Aimbot aktiviert")
+            
+            -- Aimbot-Einstellungen anwenden
+            updateAimbotSettings()
+        else
+            warn("Fehler beim Ausführen des Aimbot-Scripts: " .. tostring(err))
+            AimbotEnabled = false
+        end
+    end
+end
+
+local function disableAimbot()
+    AimbotEnabled = false
+    
+    -- Aimbot deaktivieren - wir gehen davon aus, dass das Script eine globale 
+    -- Aimbot-Variable/Tabelle enthält, die eine Toggle-Funktion hat
+    if getfenv()["Aimbot"] and type(getfenv()["Aimbot"]) == "table" then
+        if getfenv()["Aimbot"].Enabled ~= nil then
+            getfenv()["Aimbot"].Enabled = false
+        end
+        
+        if type(getfenv()["Aimbot"].Toggle) == "function" then
+            getfenv()["Aimbot"].Toggle(false)
+        end
+    end
+    
+    print("Aimbot deaktiviert")
+end
+
+local function updateAimbotSettings()
+    -- Wir gehen davon aus, dass das Script eine globale Aimbot-Variable/Tabelle enthält
+    if getfenv()["Aimbot"] and type(getfenv()["Aimbot"]) == "table" then
+        local aimbot = getfenv()["Aimbot"]
+        
+        -- Typische Einstellungen, die möglicherweise in dem Script existieren
+        if aimbot.FOV ~= nil then
+            aimbot.FOV = AimbotSettings.FOV
+        end
+        
+        if aimbot.Sensitivity ~= nil then
+            aimbot.Sensitivity = AimbotSettings.Sensitivity
+        end
+        
+        if aimbot.TeamCheck ~= nil then
+            aimbot.TeamCheck = AimbotSettings.TeamCheck
+        end
+        
+        if aimbot.VisibilityCheck ~= nil then
+            aimbot.VisibilityCheck = AimbotSettings.VisibilityCheck
+        end
+        
+        print("Aimbot-Einstellungen aktualisiert")
+    end
+end
+
+-- Buttons verbinden
+EnableButton.MouseButton1Click:Connect(enableAimbot)
+DisableButton.MouseButton1Click:Connect(disableAimbot)
+
+-- Initialisierung
+updateGuiState()
