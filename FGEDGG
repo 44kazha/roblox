@@ -1,0 +1,301 @@
+-- KAZHA MENU mit ESP Farbanpassung
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local UserInputService = game:GetService("UserInputService")
+local LocalPlayer = Players.LocalPlayer
+local Camera = workspace.CurrentCamera
+
+-- GUI Setup
+local ScreenGui = Instance.new("ScreenGui")
+ScreenGui.Name = "KAZHA_MENU"
+ScreenGui.Parent = game.CoreGui
+
+local MainFrame = Instance.new("Frame")
+MainFrame.Name = "MainFrame"
+MainFrame.Size = UDim2.new(0, 200, 0, 200)
+MainFrame.Position = UDim2.new(0.85, 0, 0.5, 0)
+MainFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 50)
+MainFrame.BorderSizePixel = 0
+MainFrame.Active = true
+MainFrame.Draggable = true
+MainFrame.Parent = ScreenGui
+
+local Title = Instance.new("TextLabel")
+Title.Name = "Title"
+Title.Size = UDim2.new(1, 0, 0, 30)
+Title.Position = UDim2.new(0, 0, 0, 0)
+Title.BackgroundColor3 = Color3.fromRGB(40, 40, 60)
+Title.BorderSizePixel = 0
+Title.Text = "KAZHA MENU"
+Title.TextColor3 = Color3.fromRGB(255, 255, 255)
+Title.TextSize = 18
+Title.Font = Enum.Font.SourceSansBold
+Title.Parent = MainFrame
+
+-- Settings
+local Settings = {
+    AimPart = "Head",
+    AimRadius = 100,
+    TeamCheck = true,
+    WallCheck = true,
+    DrawFOV = true,
+    FOVSides = 12,
+    FOVColor = Color3.fromRGB(231, 84, 128),
+    Sensitivity = 0.5,
+    TriggerKey = Enum.UserInputType.MouseButton2
+}
+
+-- Create Toggle Function
+local function CreateToggle(name, position, defaultValue)
+    local ToggleFrame = Instance.new("Frame")
+    ToggleFrame.Name = name .. "Frame"
+    ToggleFrame.Size = UDim2.new(1, 0, 0, 30)
+    ToggleFrame.Position = position
+    ToggleFrame.BackgroundColor3 = defaultValue and Color3.fromRGB(90, 90, 200) : Color3.fromRGB(40, 40, 60)
+    ToggleFrame.BorderSizePixel = 0
+    ToggleFrame.Parent = MainFrame
+    
+    local ToggleButton = Instance.new("TextButton")
+    ToggleButton.Name = "Button"
+    ToggleButton.Size = UDim2.new(1, 0, 1, 0)
+    ToggleButton.BackgroundTransparency = 0
+    ToggleButton.BackgroundColor3 = defaultValue and Color3.fromRGB(90, 90, 200) : Color3.fromRGB(40, 40, 60)
+    ToggleButton.BorderSizePixel = 1
+    ToggleButton.BorderColor3 = Color3.fromRGB(60, 60, 80)
+    ToggleButton.Text = name .. ": " .. (defaultValue and "ON" or "OFF")
+    ToggleButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+    ToggleButton.TextSize = 14
+    ToggleButton.Font = Enum.Font.SourceSansBold
+    ToggleButton.Parent = ToggleFrame
+    
+    local Enabled = defaultValue
+    
+    ToggleButton.MouseButton1Click:Connect(function()
+        Enabled = not Enabled
+        if Enabled then
+            ToggleButton.BackgroundColor3 = Color3.fromRGB(90, 90, 200)
+            ToggleFrame.BackgroundColor3 = Color3.fromRGB(90, 90, 200)
+            ToggleButton.Text = name .. ": ON"
+        else
+            ToggleButton.BackgroundColor3 = Color3.fromRGB(40, 40, 60)
+            ToggleFrame.BackgroundColor3 = Color3.fromRGB(40, 40, 60)
+            ToggleButton.Text = name .. ": OFF"
+        end
+        
+        -- Update settings
+        if name == "ESP" then
+            -- ESP toggle logic handled in main loop
+        elseif name == "Aimbot" then
+            -- Aimbot toggle logic handled in main loop
+        elseif name == "Team Check" then
+            Settings.TeamCheck = Enabled
+        elseif name == "Wall Check" then
+            Settings.WallCheck = Enabled
+        elseif name == "FOV Circle" then
+            Settings.DrawFOV = Enabled
+            FOVCircle.Visible = Enabled
+        end
+    end)
+    
+    return Enabled, ToggleButton
+end
+
+-- Create Exit Button
+local ExitFrame = Instance.new("Frame")
+ExitFrame.Name = "ExitFrame"
+ExitFrame.Size = UDim2.new(1, 0, 0, 30)
+ExitFrame.Position = UDim2.new(0, 0, 0, 170)
+ExitFrame.BackgroundColor3 = Color3.fromRGB(180, 40, 40)
+ExitFrame.BorderSizePixel = 0
+ExitFrame.Parent = MainFrame
+
+local ExitButton = Instance.new("TextButton")
+ExitButton.Name = "ExitButton"
+ExitButton.Size = UDim2.new(1, 0, 1, 0)
+ExitButton.BackgroundTransparency = 0
+ExitButton.BackgroundColor3 = Color3.fromRGB(180, 40, 40)
+ExitButton.BorderSizePixel = 1
+ExitButton.BorderColor3 = Color3.fromRGB(60, 60, 80)
+ExitButton.Text = "Exit"
+ExitButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+ExitButton.TextSize = 14
+ExitButton.Font = Enum.Font.SourceSansBold
+ExitButton.Parent = ExitFrame
+
+ExitButton.MouseButton1Click:Connect(function()
+    ScreenGui:Destroy()
+end)
+
+-- Create Toggles
+local ESPEnabled, ESPButton = CreateToggle("ESP", UDim2.new(0, 0, 0, 30), false)
+local AimbotEnabled, AimbotButton = CreateToggle("Aimbot", UDim2.new(0, 0, 0, 60), false)
+local TeamCheckEnabled, TeamCheckButton = CreateToggle("Team Check", UDim2.new(0, 0, 0, 90), true)
+local WallCheckEnabled, WallCheckButton = CreateToggle("Wall Check", UDim2.new(0, 0, 0, 120), true)
+local FOVCircleEnabled, FOVCircleButton = CreateToggle("FOV Circle", UDim2.new(0, 0, 0, 150), true)
+
+-- FOV Circle
+local FOVCircle = Drawing.new("Circle")
+FOVCircle.Visible = Settings.DrawFOV
+FOVCircle.Radius = Settings.AimRadius
+FOVCircle.Thickness = 1
+FOVCircle.NumSides = Settings.FOVSides
+FOVCircle.Color = Settings.FOVColor
+FOVCircle.Filled = false
+FOVCircle.Transparency = 1
+
+-- Check if a player is behind a wall
+local function IsPlayerBehindWall(Target)
+    if not Settings.WallCheck then return true end
+    
+    local Character = LocalPlayer.Character
+    local HumanoidRootPart = Character and Character:FindFirstChild("HumanoidRootPart")
+    local TargetCharacter = Target.Character
+    local TargetHumanoidRootPart = TargetCharacter and TargetCharacter:FindFirstChild("HumanoidRootPart")
+    
+    if not HumanoidRootPart or not TargetHumanoidRootPart then return false end
+    
+    local Direction = (TargetHumanoidRootPart.Position - HumanoidRootPart.Position).Unit
+    local RaycastParams = RaycastParams.new()
+    RaycastParams.FilterDescendantsInstances = {Character, TargetCharacter}
+    RaycastParams.FilterType = Enum.RaycastFilterType.Blacklist
+    
+    local RaycastResult = workspace:Raycast(HumanoidRootPart.Position, Direction * 100, RaycastParams)
+    return RaycastResult == nil
+end
+
+-- Get the closest player to the mouse cursor
+local function GetClosestPlayer()
+    local MaxDistance = Settings.AimRadius
+    local Target = nil
+    
+    for _, Player in pairs(Players:GetPlayers()) do
+        if Player ~= LocalPlayer then
+            if Player.Character and Player.Character:FindFirstChild("Humanoid") and Player.Character.Humanoid.Health > 0 and Player.Character:FindFirstChild(Settings.AimPart) then
+                if not Settings.TeamCheck or Player.Team ~= LocalPlayer.Team then
+                    local ScreenPoint = Camera:WorldToScreenPoint(Player.Character[Settings.AimPart].Position)
+                    local VectorDistance = (Vector2.new(UserInputService:GetMouseLocation().X, UserInputService:GetMouseLocation().Y) - Vector2.new(ScreenPoint.X, ScreenPoint.Y)).Magnitude
+                    
+                    if VectorDistance < MaxDistance then
+                        if not Settings.WallCheck or IsPlayerBehindWall(Player) then
+                            MaxDistance = VectorDistance
+                            Target = Player
+                        end
+                    end
+                end
+            end
+        end
+    end
+    
+    return Target
+end
+
+-- ESP Implementation
+local ESPLabels = {}
+
+local function ClearESP()
+    for player, label in pairs(ESPLabels) do
+        label:Remove()
+    end
+    ESPLabels = {}
+end
+
+local function UpdateESP()
+    for _, player in pairs(Players:GetPlayers()) do
+        if player ~= LocalPlayer then
+            if player.Character and player.Character:FindFirstChild("Humanoid") and player.Character.Humanoid.Health > 0 and player.Character:FindFirstChild("Head") then
+                local head = player.Character.Head
+                local screenPos, onScreen = Camera:WorldToScreenPoint(head.Position)
+                
+                if onScreen then
+                    if not ESPLabels[player] then
+                        local label = Drawing.new("Text")
+                        label.Visible = false
+                        label.Center = true
+                        label.Outline = true
+                        label.Font = 2
+                        label.Size = 13
+                        label.Color = Color3.fromRGB(255, 255, 255)
+                        label.Text = player.Name
+                        ESPLabels[player] = label
+                    end
+                    
+                    ESPLabels[player].Position = Vector2.new(screenPos.X, screenPos.Y - 40)
+                    ESPLabels[player].Visible = ESPEnabled
+                    
+                    if Settings.TeamCheck and player.Team == LocalPlayer.Team then
+                        ESPLabels[player].Color = Color3.fromRGB(0, 255, 0)
+                    else
+                        -- Prüfen ob Spieler hinter einer Wand ist
+                        local isBehindWall = not IsPlayerBehindWall(player)
+                        
+                        if isBehindWall then
+                            -- Hinter Wand = ROT
+                            ESPLabels[player].Color = Color3.fromRGB(255, 0, 0)
+                        else
+                            -- Vor Wand = GRÜN
+                            ESPLabels[player].Color = Color3.fromRGB(0, 255, 0)
+                        end
+                    end
+                elseif ESPLabels[player] then
+                    ESPLabels[player].Visible = false
+                end
+            elseif ESPLabels[player] then
+                ESPLabels[player].Visible = false
+            end
+        end
+    end
+    
+    -- Remove labels for players that left
+    for player, label in pairs(ESPLabels) do
+        if not Players:FindFirstChild(player.Name) then
+            label:Remove()
+            ESPLabels[player] = nil
+        end
+    end
+end
+
+-- Aimbot Logic
+local Holding = false
+UserInputService.InputBegan:Connect(function(Input)
+    if Input.UserInputType == Settings.TriggerKey then
+        Holding = true
+    end
+end)
+
+UserInputService.InputEnded:Connect(function(Input)
+    if Input.UserInputType == Settings.TriggerKey then
+        Holding = false
+    end
+end)
+
+-- Update Loop
+RunService.RenderStepped:Connect(function()
+    FOVCircle.Position = UserInputService:GetMouseLocation()
+    FOVCircle.Visible = Settings.DrawFOV and FOVCircleEnabled
+    
+    if ESPEnabled then
+        UpdateESP()
+    else
+        for player, label in pairs(ESPLabels) do
+            label.Visible = false
+        end
+    end
+    
+    if AimbotEnabled and Holding then
+        local Target = GetClosestPlayer()
+        if Target then
+            local TargetPos = Camera:WorldToScreenPoint(Target.Character[Settings.AimPart].Position)
+            local MousePos = UserInputService:GetMouseLocation()
+            mousemoverel(
+                (TargetPos.X - MousePos.X) * Settings.Sensitivity,
+                (TargetPos.Y - MousePos.Y) * Settings.Sensitivity
+            )
+        end
+    end
+end)
+
+-- Cleanup
+ScreenGui.Destroying:Connect(function()
+    FOVCircle:Remove()
+    ClearESP()
+end)
