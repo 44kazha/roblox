@@ -1,0 +1,533 @@
+-- KAZHA MENU - Optimierter Cheat für Roblox "Rivals"
+-- ANGEPASST: Nur Namen anzeigen, Wallcheck mit Farbänderung, 1s Refresh, FOV in der Mitte
+
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local UserInputService = game:GetService("UserInputService")
+local LocalPlayer = Players.LocalPlayer
+local Camera = workspace.CurrentCamera
+local Mouse = LocalPlayer:GetMouse()
+
+-- Performance-Optimierte Variablen
+local ESPEnabled = false
+local AimbotEnabled = false
+local AimbotActive = false
+local TeamCheckEnabled = true  -- Team Check standardmäßig aktiviert
+local WallCheckEnabled = true  -- Wall Check standardmäßig aktiviert
+local FOVCircleEnabled = true  -- FOV Circle standardmäßig aktiviert
+local ESPObjects = {}
+local HeartbeatConnection
+local RenderConnection
+local ActivePlayers = {}
+local UpdateRate = 1.0 -- ESP Update-Rate auf 1 Sekunde geändert
+
+-- Farben für das neue Design
+local Colors = {
+    Background = Color3.fromRGB(30, 30, 50),        -- Dunkles Blau-Violett für Hintergrund
+    Border = Color3.fromRGB(80, 50, 150),           -- Lila für Ränder
+    ButtonBg = Color3.fromRGB(40, 40, 70),          -- Dunkel für inaktive Buttons
+    ButtonActive = Color3.fromRGB(120, 70, 220),    -- Helles Lila für aktive Buttons
+    Text = Color3.fromRGB(220, 220, 250),           -- Helles Weiß mit Lilaton
+    TitleBg = Color3.fromRGB(40, 30, 80),           -- Dunkles Lila für Titel
+    ExitButton = Color3.fromRGB(150, 30, 60),       -- Rot für Exit-Button
+    InSightEnemy = Color3.fromRGB(0, 255, 0),       -- Grün für Gegner im Sichtfeld
+    BehindWallEnemy = Color3.fromRGB(255, 0, 0)     -- Rot für Gegner hinter Wänden
+}
+
+-- GUI Erstellung
+local ScreenGui = Instance.new("ScreenGui")
+ScreenGui.Name = "KAZHA_MENU"
+ScreenGui.Parent = game.CoreGui
+
+local MainFrame = Instance.new("Frame")
+MainFrame.Name = "MainFrame"
+MainFrame.Size = UDim2.new(0, 200, 0, 250)
+MainFrame.Position = UDim2.new(0.8, 0, 0.3, 0)
+MainFrame.BackgroundColor3 = Colors.Background
+MainFrame.BorderSizePixel = 2
+MainFrame.BorderColor3 = Colors.Border
+MainFrame.Active = true
+MainFrame.Draggable = true
+MainFrame.Parent = ScreenGui
+
+local Title = Instance.new("TextLabel")
+Title.Name = "Title"
+Title.Size = UDim2.new(1, 0, 0, 35)
+Title.BackgroundColor3 = Colors.TitleBg
+Title.BorderSizePixel = 0
+Title.Text = "KAZHA MENU"
+Title.TextColor3 = Colors.Text
+Title.TextSize = 20
+Title.Font = Enum.Font.GothamBold
+Title.Parent = MainFrame
+
+-- ESP Toggle
+local ESPToggle = Instance.new("TextButton")
+ESPToggle.Name = "ESPToggle"
+ESPToggle.Size = UDim2.new(0.9, 0, 0, 30)
+ESPToggle.Position = UDim2.new(0.05, 0, 0.15, 0)
+ESPToggle.BackgroundColor3 = Colors.ButtonBg
+ESPToggle.BorderSizePixel = 1
+ESPToggle.BorderColor3 = Colors.Border
+ESPToggle.Text = "ESP: OFF"
+ESPToggle.TextColor3 = Colors.Text
+ESPToggle.TextSize = 16
+ESPToggle.Font = Enum.Font.Gotham
+ESPToggle.Parent = MainFrame
+
+-- Aimbot Toggle
+local AimbotToggle = Instance.new("TextButton")
+AimbotToggle.Name = "AimbotToggle"
+AimbotToggle.Size = UDim2.new(0.9, 0, 0, 30)
+AimbotToggle.Position = UDim2.new(0.05, 0, 0.27, 0)
+AimbotToggle.BackgroundColor3 = Colors.ButtonBg
+AimbotToggle.BorderSizePixel = 1
+AimbotToggle.BorderColor3 = Colors.Border
+AimbotToggle.Text = "Aimbot: OFF"
+AimbotToggle.TextColor3 = Colors.Text
+AimbotToggle.TextSize = 16
+AimbotToggle.Font = Enum.Font.Gotham
+AimbotToggle.Parent = MainFrame
+
+-- Team Check Toggle
+local TeamCheckToggle = Instance.new("TextButton")
+TeamCheckToggle.Name = "TeamCheckToggle"
+TeamCheckToggle.Size = UDim2.new(0.9, 0, 0, 30)
+TeamCheckToggle.Position = UDim2.new(0.05, 0, 0.39, 0)
+TeamCheckToggle.BackgroundColor3 = Colors.ButtonActive  -- Aktiv standardmäßig
+TeamCheckToggle.BorderSizePixel = 1
+TeamCheckToggle.BorderColor3 = Colors.Border
+TeamCheckToggle.Text = "Team Check: ON"
+TeamCheckToggle.TextColor3 = Colors.Text
+TeamCheckToggle.TextSize = 16
+TeamCheckToggle.Font = Enum.Font.Gotham
+TeamCheckToggle.Parent = MainFrame
+
+-- Wall Check Toggle
+local WallCheckToggle = Instance.new("TextButton")
+WallCheckToggle.Name = "WallCheckToggle"
+WallCheckToggle.Size = UDim2.new(0.9, 0, 0, 30)
+WallCheckToggle.Position = UDim2.new(0.05, 0, 0.51, 0)
+WallCheckToggle.BackgroundColor3 = Colors.ButtonActive  -- Aktiv standardmäßig
+WallCheckToggle.BorderSizePixel = 1
+WallCheckToggle.BorderColor3 = Colors.Border
+WallCheckToggle.Text = "Wall Check: ON"
+WallCheckToggle.TextColor3 = Colors.Text
+WallCheckToggle.TextSize = 16
+WallCheckToggle.Font = Enum.Font.Gotham
+WallCheckToggle.Parent = MainFrame
+
+-- FOV Circle Toggle
+local FOVCircleToggle = Instance.new("TextButton")
+FOVCircleToggle.Name = "FOVCircleToggle"
+FOVCircleToggle.Size = UDim2.new(0.9, 0, 0, 30)
+FOVCircleToggle.Position = UDim2.new(0.05, 0, 0.63, 0)
+FOVCircleToggle.BackgroundColor3 = Colors.ButtonActive  -- Aktiv standardmäßig
+FOVCircleToggle.BorderSizePixel = 1
+FOVCircleToggle.BorderColor3 = Colors.Border
+FOVCircleToggle.Text = "FOV Circle: ON"
+FOVCircleToggle.TextColor3 = Colors.Text
+FOVCircleToggle.TextSize = 16
+FOVCircleToggle.Font = Enum.Font.Gotham
+FOVCircleToggle.Parent = MainFrame
+
+-- Exit Button
+local ExitButton = Instance.new("TextButton")
+ExitButton.Name = "ExitButton"
+ExitButton.Size = UDim2.new(0.9, 0, 0, 30)
+ExitButton.Position = UDim2.new(0.05, 0, 0.85, 0)
+ExitButton.BackgroundColor3 = Colors.ExitButton
+ExitButton.BorderSizePixel = 1
+ExitButton.BorderColor3 = Color3.fromRGB(100, 0, 20)
+ExitButton.Text = "Exit"
+ExitButton.TextColor3 = Colors.Text
+ExitButton.TextSize = 16
+ExitButton.Font = Enum.Font.GothamBold
+ExitButton.Parent = MainFrame
+
+-- Verbesserte Enemy-Erkennung
+local function IsEnemy(player)
+    -- Sicherstellen, dass wir nicht uns selbst als Feind betrachten
+    if player == LocalPlayer then 
+        return false 
+    end
+    
+    -- Verbesserte Team-Erkennung
+    local myTeam = nil
+    local theirTeam = nil
+    
+    pcall(function()
+        myTeam = LocalPlayer.Team
+        theirTeam = player.Team
+    end)
+    
+    -- Wenn keine Teams existieren oder eines nicht gefunden werden kann, als Feind behandeln
+    if not myTeam or not theirTeam then return true end
+    
+    -- Im gleichen Team? Dann kein Feind
+    return myTeam ~= theirTeam
+end
+
+-- GEÄNDERT: Nur Namen-ESP statt Strichmännchen
+local function CreateNameESP(player)
+    if not player or not player.Character then return end
+    
+    -- Überprüfe, ob der ESP für diesen Spieler bereits existiert
+    if ESPObjects[player] and ESPObjects[player].Parent then
+        return
+    end
+    
+    -- ESP-Container erstellen
+    local ESPFolder = Instance.new("Folder")
+    ESPFolder.Name = "ESP_" .. player.Name
+    ESPFolder.Parent = game.CoreGui
+    
+    ESPObjects[player] = ESPFolder
+    
+    -- Spielernamen anzeigen über dem Kopf
+    local nameTag = Instance.new("BillboardGui")
+    nameTag.Name = "NameESP"
+    nameTag.Size = UDim2.new(0, 200, 0, 50)
+    nameTag.StudsOffset = Vector3.new(0, 2, 0)
+    nameTag.AlwaysOnTop = true
+    
+    local head = player.Character:FindFirstChild("Head")
+    if head then
+        nameTag.Adornee = head
+        
+        local nameLabel = Instance.new("TextLabel")
+        nameLabel.Name = "PlayerName"
+        nameLabel.BackgroundTransparency = 1
+        nameLabel.Size = UDim2.new(1, 0, 1, 0)
+        nameLabel.Text = player.Name
+        nameLabel.TextColor3 = Colors.InSightEnemy  -- Standardmäßig grün
+        nameLabel.TextSize = 20
+        nameLabel.TextStrokeTransparency = 0.3
+        nameLabel.TextStrokeColor3 = Color3.new(0, 0, 0)
+        nameLabel.Font = Enum.Font.GothamBold
+        nameLabel.Parent = nameTag
+        
+        nameTag.Parent = ESPFolder
+    end
+end
+
+-- GEÄNDERT: Nur Namen-ESP updaten mit Wall Check
+local function UpdateNameESP()
+    for player, folder in pairs(ESPObjects) do
+        if folder and folder.Parent and player.Character then
+            local nameTag = folder:FindFirstChild("NameESP")
+            local nameLabel = nameTag and nameTag:FindFirstChild("PlayerName")
+            local head = player.Character:FindFirstChild("Head")
+            
+            if nameLabel and head then
+                -- Farbe basierend auf Wall Check
+                local espColor = Colors.InSightEnemy  -- Standardmäßig grün für sichtbare Gegner
+                
+                if WallCheckEnabled then
+                    -- Überprüfen, ob der Spieler hinter einer Wand ist
+                    local ray = Ray.new(Camera.CFrame.Position, (head.Position - Camera.CFrame.Position).Unit * 500)
+                    local hit, hitPos = workspace:FindPartOnRayWithIgnoreList(ray, {LocalPlayer.Character, player.Character})
+                    
+                    if hit then
+                        -- Spieler ist hinter einer Wand - rot anzeigen
+                        espColor = Colors.BehindWallEnemy
+                    end
+                end
+                
+                -- Team-Farbe überprüfen (optional behalten)
+                if TeamCheckEnabled and not IsEnemy(player) then
+                    espColor = Color3.fromRGB(0, 255, 255)  -- Blau für Teammitglieder
+                end
+                
+                nameLabel.TextColor3 = espColor
+            end
+        end
+    end
+end
+
+local function RemoveESP(player)
+    if ESPObjects[player] then
+        ESPObjects[player]:Destroy()
+        ESPObjects[player] = nil
+    end
+end
+
+local function RefreshESP()
+    if not ESPEnabled then return end
+    
+    for _, player in pairs(Players:GetPlayers()) do
+        if player ~= LocalPlayer and player.Character then
+            CreateNameESP(player)
+        end
+    end
+end
+
+-- Verbesserte Aimbot-Funktion speziell auf den Kopf (Performance-optimiert)
+local function GetBestHeadshot(character)
+    if not character then return nil end
+    
+    local head = character:FindFirstChild("Head")
+    if not head then return nil end
+    
+    -- Eine einfache Position berechnen - keine komplexe Logik für bessere Performance
+    return head.Position + Vector3.new(0, 0.2, 0)
+end
+
+-- VERBESSERT: GetClosestEnemyHead Funktion mit besserer Team-Erkennung
+local function GetClosestEnemyHead()
+    local closestPlayer = nil
+    local closestDistance = math.huge
+    local bestPosition = nil
+    
+    -- Cache für häufig verwendete Positionen
+    local cameraPosition = Camera.CFrame.Position
+    local mousePosition = Vector2.new(Mouse.X, Mouse.Y)
+    
+    for _, player in pairs(ActivePlayers) do
+        -- VERBESSERT: Stellen sicher, dass wir nicht auf uns selbst oder Teammitglieder zielen
+        if player ~= LocalPlayer and player.Character and (not TeamCheckEnabled or IsEnemy(player)) then
+            local head = player.Character:FindFirstChild("Head")
+            local humanoid = player.Character:FindFirstChild("Humanoid")
+            
+            if head and humanoid and humanoid.Health > 0 then
+                local headPosition = GetBestHeadshot(player.Character)
+                
+                if headPosition then
+                    -- Wall Check, wenn aktiviert
+                    local canSee = true
+                    if WallCheckEnabled then
+                        local ray = Ray.new(cameraPosition, (headPosition - cameraPosition).Unit * 500)
+                        local hit, hitPos = workspace:FindPartOnRayWithIgnoreList(ray, {LocalPlayer.Character, player.Character})
+                        canSee = hit == nil
+                    end
+                    
+                    if canSee then
+                        local screenPos, onScreen = Camera:WorldToScreenPoint(headPosition)
+                        
+                        if onScreen and screenPos.Z > 0 then
+                            local dist = (Vector2.new(screenPos.X, screenPos.Y) - mousePosition).Magnitude
+                            if dist < closestDistance then
+                                closestPlayer = player
+                                closestDistance = dist
+                                bestPosition = headPosition
+                            end
+                        end
+                    end
+                end
+            end
+        end
+    end
+    
+    return closestPlayer, bestPosition
+end
+
+-- Event-Management für Performance
+local function SetupPlayerTracking()
+    -- Bestehende Spieler registrieren
+    for _, player in pairs(Players:GetPlayers()) do
+        if player ~= LocalPlayer then
+            table.insert(ActivePlayers, player)
+        end
+    end
+    
+    -- Neue Spieler registrieren
+    Players.PlayerAdded:Connect(function(player)
+        table.insert(ActivePlayers, player)
+        if ESPEnabled and player ~= LocalPlayer then
+            wait(1) -- Kurze Wartezeit für Charakter-Erstellung
+            CreateNameESP(player)  -- Geändert zu NameESP
+        end
+    end)
+    
+    -- Ausscheidende Spieler entfernen
+    Players.PlayerRemoving:Connect(function(player)
+        RemoveESP(player)
+        for i, p in ipairs(ActivePlayers) do
+            if p == player then
+                table.remove(ActivePlayers, i)
+                break
+            end
+        end
+    end)
+    
+    -- Character-Events
+    local function handleCharacterAdded(player, character)
+        if player == LocalPlayer then return end
+        
+        wait(0.5) -- Kurz warten für Charakterladung
+        if ESPEnabled then
+            CreateNameESP(player)  -- Geändert zu NameESP
+        end
+    end
+    
+    for _, player in pairs(Players:GetPlayers()) do
+        player.CharacterAdded:Connect(function(character)
+            handleCharacterAdded(player, character)
+        end)
+    end
+    
+    Players.PlayerAdded:Connect(function(player)
+        player.CharacterAdded:Connect(function(character)
+            handleCharacterAdded(player, character)
+        end)
+    end)
+    
+    -- Lokaler Spieler-Respawn
+    if LocalPlayer.Character then
+        LocalPlayer.CharacterAdded:Connect(function()
+            wait(1)
+            if ESPEnabled then
+                RefreshESP()
+            end
+        end)
+    end
+end
+
+-- FOV Circle für den Aimbot (NEU: zentriert in der Bildschirmmitte)
+local FOVCircle = Drawing.new("Circle")
+FOVCircle.Visible = FOVCircleEnabled
+FOVCircle.Radius = 100
+FOVCircle.Thickness = 2
+FOVCircle.Transparency = 0.8
+FOVCircle.Color = Color3.fromRGB(255, 255, 255)
+FOVCircle.Filled = false
+
+-- Hauptsystem für Updates (Performance-optimiert)
+local lastUpdateTime = 0
+local function SetupMainLoop()
+    -- FOV Circle in der Bildschirmmitte positionieren
+    local viewportSize = Camera.ViewportSize
+    local centerX = viewportSize.X / 2
+    local centerY = viewportSize.Y / 2
+    
+    -- Position des FOV Circles aktualisieren
+    FOVCircle.Position = Vector2.new(centerX, centerY)
+    
+    -- Heartbeat für Aimbot (höhere Priorität)
+    HeartbeatConnection = RunService.Heartbeat:Connect(function()
+        -- FOV Circle sichtbar/unsichtbar je nach Einstellung
+        FOVCircle.Visible = FOVCircleEnabled and AimbotEnabled
+        
+        if AimbotEnabled and AimbotActive then
+            local targetPlayer, aimPosition = GetClosestEnemyHead()
+            
+            -- VERBESSERT: Nur zielen, wenn ein gültiges Ziel gefunden wurde
+            if targetPlayer and aimPosition and targetPlayer ~= LocalPlayer then
+                local screenPos, onScreen = Camera:WorldToScreenPoint(aimPosition)
+                
+                if onScreen then
+                    -- Direktes Aim zum Kopf - weniger Smoothing für Präzision
+                    mousemoverel((screenPos.X - Mouse.X) * 0.4, (screenPos.Y - Mouse.Y) * 0.4)
+                end
+            end
+        end
+    end)
+    
+    -- RenderStepped für ESP (weniger häufige Updates - alle 1 Sekunde)
+    RenderConnection = RunService.RenderStepped:Connect(function()
+        -- Performance-Optimierung: Nur alle 1 Sekunde aktualisieren
+        local currentTime = tick()
+        if currentTime - lastUpdateTime > UpdateRate then
+            lastUpdateTime = currentTime
+            
+            if ESPEnabled then
+                UpdateNameESP()  -- Geändert zu NameESP
+            end
+        end
+    end)
+end
+
+-- GUI-Events
+ESPToggle.MouseButton1Click:Connect(function()
+    ESPEnabled = not ESPEnabled
+    ESPToggle.Text = "ESP: " .. (ESPEnabled and "ON" or "OFF")
+    ESPToggle.BackgroundColor3 = ESPEnabled and Colors.ButtonActive or Colors.ButtonBg
+    
+    if ESPEnabled then
+        RefreshESP()
+    else
+        for player, folder in pairs(ESPObjects) do
+            if folder then folder:Destroy() end
+        end
+        ESPObjects = {}
+    end
+end)
+
+AimbotToggle.MouseButton1Click:Connect(function()
+    AimbotEnabled = not AimbotEnabled
+    AimbotToggle.Text = "Aimbot: " .. (AimbotEnabled and "ON" or "OFF")
+    AimbotToggle.BackgroundColor3 = AimbotEnabled and Colors.ButtonActive or Colors.ButtonBg
+end)
+
+-- Neue Button-Events für die hinzugefügten Funktionen
+TeamCheckToggle.MouseButton1Click:Connect(function()
+    TeamCheckEnabled = not TeamCheckEnabled
+    TeamCheckToggle.Text = "Team Check: " .. (TeamCheckEnabled and "ON" or "OFF")
+    TeamCheckToggle.BackgroundColor3 = TeamCheckEnabled and Colors.ButtonActive or Colors.ButtonBg
+end)
+
+WallCheckToggle.MouseButton1Click:Connect(function()
+    WallCheckEnabled = not WallCheckEnabled
+    WallCheckToggle.Text = "Wall Check: " .. (WallCheckEnabled and "ON" or "OFF") 
+    WallCheckToggle.BackgroundColor3 = WallCheckEnabled and Colors.ButtonActive or Colors.ButtonBg
+end)
+
+FOVCircleToggle.MouseButton1Click:Connect(function()
+    FOVCircleEnabled = not FOVCircleEnabled
+    FOVCircleToggle.Text = "FOV Circle: " .. (FOVCircleEnabled and "ON" or "OFF")
+    FOVCircleToggle.BackgroundColor3 = FOVCircleEnabled and Colors.ButtonActive or Colors.ButtonBg
+end)
+
+ExitButton.MouseButton1Click:Connect(function()
+    -- Alle Verbindungen trennen
+    if HeartbeatConnection then
+        HeartbeatConnection:Disconnect()
+    end
+    
+    if RenderConnection then
+        RenderConnection:Disconnect()
+    end
+    
+    -- ESP aufräumen
+    for player, folder in pairs(ESPObjects) do
+        if folder then folder:Destroy() end
+    end
+    
+    -- FOV Circle entfernen
+    FOVCircle:Remove()
+    
+    -- GUI entfernen
+    ScreenGui:Destroy()
+end)
+
+-- Aimbot mit rechter Maustaste
+Mouse.Button2Down:Connect(function()
+    if AimbotEnabled then
+        AimbotActive = true
+    end
+end)
+
+Mouse.Button2Up:Connect(function()
+    AimbotActive = false
+end)
+
+-- Startup
+SetupPlayerTracking()
+SetupMainLoop()
+
+-- Verbessertes Wasserzeichen im neuen Design
+local Watermark = Instance.new("TextLabel")
+Watermark.Name = "Watermark"
+Watermark.Size = UDim2.new(0, 100, 0, 20)
+Watermark.Position = UDim2.new(0, 5, 0, 5)
+Watermark.BackgroundTransparency = 0.6
+Watermark.BackgroundColor3 = Colors.Background
+Watermark.BorderSizePixel = 1
+Watermark.BorderColor3 = Colors.Border
+Watermark.Text = "KAZHA"
+Watermark.TextColor3 = Color3.fromRGB(180, 100, 255) -- Helles Lila
+Watermark.TextSize = 14
+Watermark.Font = Enum.Font.GothamBold
+Watermark.Parent = ScreenGui
+
+print("KAZHA MENU geladen - [NUR NAMEN ESP + ZENTRIERTER FOV]")
