@@ -1,0 +1,284 @@
+-- Kazha Menu für Roblox mit ESP und Aimbot
+-- Basiert auf Modulen von Exunys
+
+-- Services
+local Players = game:GetService("Players")
+local UserInputService = game:GetService("UserInputService")
+local RunService = game:GetService("RunService")
+local CoreGui = game:GetService("CoreGui")
+
+-- Entfernen des vorherigen GUIs, falls es existiert
+pcall(function()
+    if CoreGui:FindFirstChild("KazhaMenu") then
+        CoreGui:FindFirstChild("KazhaMenu"):Destroy()
+    end
+end)
+
+-- ESP und Aimbot Module laden
+local function loadModule(url)
+    local success, module = pcall(function()
+        return loadstring(game:HttpGet(url))()
+    end)
+    
+    if success then
+        return module
+    else
+        warn("Fehler beim Laden des Moduls: " .. tostring(module))
+        return nil
+    end
+end
+
+local ESP = loadModule("https://raw.githubusercontent.com/Exunys/Exunys-ESP/refs/heads/main/src/ESP.lua")
+local Aimbot = loadModule("https://raw.githubusercontent.com/Exunys/Aimbot-V3/refs/heads/main/src/Aimbot.lua")
+
+-- GUI erstellen
+local KazhaMenu = Instance.new("ScreenGui")
+KazhaMenu.Name = "KazhaMenu"
+KazhaMenu.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+KazhaMenu.ResetOnSpawn = false
+KazhaMenu.Parent = CoreGui
+
+-- Hauptframe
+local MainFrame = Instance.new("Frame")
+MainFrame.Name = "MainFrame"
+MainFrame.Size = UDim2.new(0, 240, 0, 300)
+MainFrame.Position = UDim2.new(0.5, -120, 0.5, -150)
+MainFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 45)
+MainFrame.BorderSizePixel = 0
+MainFrame.Active = true
+MainFrame.Draggable = true
+MainFrame.Parent = KazhaMenu
+
+-- Titel
+local TitleFrame = Instance.new("Frame")
+TitleFrame.Name = "TitleFrame"
+TitleFrame.Size = UDim2.new(1, 0, 0, 40)
+TitleFrame.BackgroundColor3 = Color3.fromRGB(40, 40, 60)
+TitleFrame.BorderSizePixel = 0
+TitleFrame.Parent = MainFrame
+
+local TitleText = Instance.new("TextLabel")
+TitleText.Name = "TitleText"
+TitleText.Size = UDim2.new(1, 0, 1, 0)
+TitleText.BackgroundTransparency = 1
+TitleText.Text = "KAZHA MENU"
+TitleText.Font = Enum.Font.GothamBold
+TitleText.TextColor3 = Color3.fromRGB(255, 255, 255)
+TitleText.TextSize = 20
+TitleText.Parent = TitleFrame
+
+-- Funktion zum Erstellen von Schaltflächen
+local function createButton(name, position, color, defaultState)
+    local Button = Instance.new("Frame")
+    Button.Name = name
+    Button.Size = UDim2.new(1, -20, 0, 40)
+    Button.Position = position
+    Button.BackgroundColor3 = color
+    Button.BorderSizePixel = 0
+    Button.Parent = MainFrame
+    
+    local ButtonText = Instance.new("TextLabel")
+    ButtonText.Name = "ButtonText"
+    ButtonText.Size = UDim2.new(1, 0, 1, 0)
+    ButtonText.BackgroundTransparency = 1
+    ButtonText.Text = name .. ": " .. (defaultState and "ON" or "OFF")
+    ButtonText.Font = Enum.Font.GothamBold
+    ButtonText.TextColor3 = Color3.fromRGB(255, 255, 255)
+    ButtonText.TextSize = 16
+    ButtonText.Parent = Button
+    
+    local ButtonClick = Instance.new("TextButton")
+    ButtonClick.Name = "ButtonClick"
+    ButtonClick.Size = UDim2.new(1, 0, 1, 0)
+    ButtonClick.BackgroundTransparency = 1
+    ButtonClick.Text = ""
+    ButtonClick.Parent = Button
+    
+    local state = defaultState or false
+    
+    ButtonClick.MouseButton1Click:Connect(function()
+        state = not state
+        ButtonText.Text = name .. ": " .. (state and "ON" or "OFF")
+        
+        return state
+    end)
+    
+    return Button, ButtonClick, function() return state end
+end
+
+-- ESP-Schaltfläche
+local ESPButton, ESPClick, getESPState = createButton("ESP", UDim2.new(0, 10, 0, 50), Color3.fromRGB(30, 30, 50), false)
+
+-- Aimbot-Schaltfläche
+local AimbotButton, AimbotClick, getAimbotState = createButton("Aimbot", UDim2.new(0, 10, 0, 100), Color3.fromRGB(30, 30, 50), false)
+
+-- Team Check-Schaltfläche
+local TeamCheckButton, TeamCheckClick, getTeamCheckState = createButton("Team Check", UDim2.new(0, 10, 0, 150), Color3.fromRGB(80, 70, 180), true)
+
+-- Wall Check-Schaltfläche
+local WallCheckButton, WallCheckClick, getWallCheckState = createButton("Wall Check", UDim2.new(0, 10, 0, 200), Color3.fromRGB(80, 70, 180), true)
+
+-- FOV Circle-Schaltfläche
+local FOVCircleButton, FOVCircleClick, getFOVCircleState = createButton("FOV Circle", UDim2.new(0, 10, 0, 250), Color3.fromRGB(80, 70, 180), true)
+
+-- Exit-Schaltfläche
+local ExitButton = Instance.new("Frame")
+ExitButton.Name = "ExitButton"
+ExitButton.Size = UDim2.new(1, -20, 0, 40)
+ExitButton.Position = UDim2.new(0, 10, 0, 300)
+ExitButton.BackgroundColor3 = Color3.fromRGB(180, 50, 50)
+ExitButton.BorderSizePixel = 0
+ExitButton.Parent = MainFrame
+
+local ExitText = Instance.new("TextLabel")
+ExitText.Name = "ExitText"
+ExitText.Size = UDim2.new(1, 0, 1, 0)
+ExitText.BackgroundTransparency = 1
+ExitText.Text = "Exit"
+ExitText.Font = Enum.Font.GothamBold
+ExitText.TextColor3 = Color3.fromRGB(255, 255, 255)
+ExitText.TextSize = 16
+ExitText.Parent = ExitButton
+
+local ExitClick = Instance.new("TextButton")
+ExitClick.Name = "ExitClick"
+ExitClick.Size = UDim2.new(1, 0, 1, 0)
+ExitClick.BackgroundTransparency = 1
+ExitClick.Text = ""
+ExitClick.Parent = ExitButton
+
+-- Größe des Hauptframe anpassen
+MainFrame.Size = UDim2.new(0, 240, 0, 350)
+
+-- ESP Funktionalität
+local espEnabled = false
+ESPClick.MouseButton1Click:Connect(function()
+    espEnabled = not espEnabled
+    
+    if espEnabled then
+        if ESP and ESP.Load then
+            ESP:Load()
+        end
+    else
+        if ESP and ESP.Unload then
+            ESP:Unload()
+        end
+    end
+end)
+
+-- Aimbot Funktionalität
+local aimbotEnabled = false
+AimbotClick.MouseButton1Click:Connect(function()
+    aimbotEnabled = not aimbotEnabled
+    
+    if Aimbot then
+        Aimbot.Settings.Enabled = aimbotEnabled
+        
+        if aimbotEnabled and Aimbot.Load then
+            Aimbot:Load()
+        end
+    end
+end)
+
+-- Team Check Funktionalität
+TeamCheckClick.MouseButton1Click:Connect(function()
+    local state = getTeamCheckState()
+    
+    if ESP then
+        ESP.TeamCheck = state
+    end
+    
+    if Aimbot then
+        Aimbot.Settings.TeamCheck = state
+    end
+end)
+
+-- Wall Check Funktionalität
+WallCheckClick.MouseButton1Click:Connect(function()
+    local state = getWallCheckState()
+    
+    if ESP then
+        ESP.WallCheck = state
+    end
+    
+    if Aimbot then
+        Aimbot.Settings.WallCheck = state
+    end
+end)
+
+-- FOV Circle Funktionalität
+FOVCircleClick.MouseButton1Click:Connect(function()
+    local state = getFOVCircleState()
+    
+    if Aimbot then
+        Aimbot.FOVSettings.Enabled = state
+        Aimbot.FOVSettings.Visible = state
+    end
+end)
+
+-- Exit Funktionalität
+ExitClick.MouseButton1Click:Connect(function()
+    -- Module schließen und entladen
+    if ESP and ESP.Unload then
+        ESP:Unload()
+    end
+    
+    if Aimbot and Aimbot.Exit then
+        Aimbot:Exit()
+    end
+    
+    -- GUI entfernen
+    KazhaMenu:Destroy()
+end)
+
+-- Keybind zum Ein-/Ausblenden des Menüs (rechte Umschalttaste)
+local menuVisible = true
+UserInputService.InputBegan:Connect(function(input, isProcessed)
+    if not isProcessed and input.KeyCode == Enum.KeyCode.RightShift then
+        menuVisible = not menuVisible
+        MainFrame.Visible = menuVisible
+    end
+end)
+
+-- Benachrichtigung
+local function createNotification(text, duration)
+    local Notification = Instance.new("Frame")
+    Notification.Name = "Notification"
+    Notification.Size = UDim2.new(0, 300, 0, 50)
+    Notification.Position = UDim2.new(0.5, -150, 0.1, 0)
+    Notification.BackgroundColor3 = Color3.fromRGB(40, 40, 60)
+    Notification.BorderSizePixel = 0
+    Notification.Parent = KazhaMenu
+    
+    local NotificationText = Instance.new("TextLabel")
+    NotificationText.Name = "NotificationText"
+    NotificationText.Size = UDim2.new(1, 0, 1, 0)
+    NotificationText.BackgroundTransparency = 1
+    NotificationText.Text = text
+    NotificationText.Font = Enum.Font.Gotham
+    NotificationText.TextColor3 = Color3.fromRGB(255, 255, 255)
+    NotificationText.TextSize = 16
+    NotificationText.Parent = Notification
+    
+    task.spawn(function()
+        task.wait(duration or 3)
+        Notification:Destroy()
+    end)
+    
+    return Notification
+end
+
+createNotification("Kazha Menu geladen! Drücke rechte Umschalttaste zum Ein-/Ausblenden", 5)
+
+-- Initialisiere Standardeinstellungen
+if ESP then
+    ESP.TeamCheck = true
+    ESP.WallCheck = true
+end
+
+if Aimbot then
+    Aimbot.Settings.TeamCheck = true
+    Aimbot.Settings.WallCheck = true
+    Aimbot.FOVSettings.Enabled = true
+    Aimbot.FOVSettings.Visible = true
+end
