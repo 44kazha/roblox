@@ -1,5 +1,5 @@
--- KAZHA MENU - Optimierter Cheat für Roblox "Rivals"
--- Nur Namen-ESP mit 1-Sekunden-Refresh
+-- KAZHA MENU - 
+-- kazhaware
 
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
@@ -89,7 +89,7 @@ Title.Name = "Title"
 Title.Size = UDim2.new(1, 0, 0, 35)
 Title.BackgroundColor3 = Colors.TitleBg
 Title.BorderSizePixel = 0
-Title.Text = "KAZHA MENU"
+Title.Text = "KAZHA WARE"
 Title.TextColor3 = Colors.Text
 Title.TextSize = 20
 Title.Font = Enum.Font.GothamBold
