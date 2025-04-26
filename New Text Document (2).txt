@@ -1,0 +1,659 @@
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local UserInputService = game:GetService("UserInputService")
+local TweenService = game:GetService("TweenService")
+local LocalPlayer = Players.LocalPlayer
+local Camera = workspace.CurrentCamera
+local Mouse = LocalPlayer:GetMouse()
+
+-- Performance-Optimierte Variablen
+local ESPEnabled = false
+local AimbotEnabled = false
+local Running = false
+local Typing = false
+local ESPObjects = {}
+local ServiceConnections = {}
+local ActivePlayers = {}
+local UpdateRate = 1 -- ESP Update-Rate auf 1 Sekunde geändert
+local RequiredDistance = 2000
+local OriginalSensitivity
+
+-- Farben für das Schwarz-Lila Design mit abgerundeten Ecken
+local Colors = {
+    Background = Color3.fromRGB(0, 0, 0),
+    Border = Color3.fromRGB(160, 32, 240),
+    ButtonBg = Color3.fromRGB(0, 0, 0),
+    ButtonActive = Color3.fromRGB(160, 32, 240),
+    ButtonText = Color3.fromRGB(160, 32, 240),
+    ButtonTextActive = Color3.fromRGB(0, 0, 0),
+    TitleBg = Color3.fromRGB(10, 10, 10),
+    ExitButton = Color3.fromRGB(150, 30, 60),
+    ESP = Color3.fromRGB(160, 32, 240)  -- Lila für ESP Namen
+}
+
+-- Aimbot-Einstellungen
+local AimbotSettings = {
+    Enabled = false,
+    TeamCheck = true,
+    AliveCheck = true,
+    WallCheck = true,
+    OffsetToMoveDirection = false,
+    OffsetIncrement = 15,
+    Sensitivity = 0,
+    Sensitivity2 = 3.5,
+    LockMode = 1,
+    LockPart = "Head",
+    TriggerKey = Enum.UserInputType.MouseButton2,
+    Toggle = false,
+    FOVRadius = 90,
+    FOVVisible = true
+}
+
+-- Aimbot-Variables
+local Animation
+local Locked
+
+-- GUI Erstellung
+local ScreenGui = Instance.new("ScreenGui")
+ScreenGui.Name = "KAZHA_MENU"
+ScreenGui.Parent = game.CoreGui
+ScreenGui.Enabled = false -- Erst deaktiviert, für Animation
+
+local MainFrame = Instance.new("Frame")
+MainFrame.Name = "MainFrame"
+MainFrame.Size = UDim2.new(0, 220, 0, 320)
+MainFrame.Position = UDim2.new(0.8, 0, 0.3, 0)
+MainFrame.BackgroundColor3 = Colors.Background
+MainFrame.BorderSizePixel = 2
+MainFrame.BorderColor3 = Colors.Border
+MainFrame.Active = true
+MainFrame.Draggable = true
+MainFrame.Parent = ScreenGui
+
+-- Runde Ecken
+local UICorner = Instance.new("UICorner")
+UICorner.CornerRadius = UDim.new(0, 10)
+UICorner.Parent = MainFrame
+
+-- Schatten für das Hauptfenster mit lila Schimmer
+local Shadow = Instance.new("ImageLabel")
+Shadow.Name = "Shadow"
+Shadow.Size = UDim2.new(1, 20, 1, 20)
+Shadow.Position = UDim2.new(0, -10, 0, -10)
+Shadow.BackgroundTransparency = 1
+Shadow.ImageTransparency = 0.5
+Shadow.Image = "rbxassetid://5028857084"
+Shadow.ScaleType = Enum.ScaleType.Slice
+Shadow.SliceCenter = Rect.new(24, 24, 276, 276)
+Shadow.ImageColor3 = Color3.fromRGB(160, 32, 240) -- Lila Schimmer
+Shadow.ZIndex = -1
+Shadow.Parent = MainFrame
+
+-- Titel
+local Title = Instance.new("TextLabel")
+Title.Name = "Title"
+Title.Size = UDim2.new(1, 0, 0, 40)
+Title.BackgroundColor3 = Colors.TitleBg
+Title.BorderSizePixel = 0
+Title.Text = "KAZHAWARE"
+Title.TextColor3 = Color3.fromRGB(255, 255, 255) -- Weißer Text
+Title.TextSize = 24
+Title.Font = Enum.Font.GothamBold
+Title.Parent = MainFrame
+
+local TitleStroke = Instance.new("UIStroke")
+TitleStroke.Color = Colors.Border -- Lila Umrandung
+TitleStroke.Thickness = 1.5
+TitleStroke.Parent = Title
+
+-- Runde Ecken für den Titel
+local TitleCorner = Instance.new("UICorner")
+TitleCorner.CornerRadius = UDim.new(0, 10)
+TitleCorner.Parent = Title
+
+-- Button Erstellung Funktion
+local function CreateButton(name, text, posY)
+    local button = Instance.new("TextButton")
+    button.Name = name
+    button.Size = UDim2.new(0.85, 0, 0, 30)
+    button.Position = UDim2.new(0.075, 0, posY, 0)
+    button.BackgroundColor3 = Colors.ButtonBg
+    button.BorderSizePixel = 1
+    button.BorderColor3 = Colors.Border
+    button.Text = text
+    button.TextColor3 = Colors.ButtonText
+    button.TextSize = 16
+    button.Font = Enum.Font.Gotham
+    button.Parent = MainFrame
+
+    -- Hover Effekt
+    button.MouseEnter:Connect(function()
+        TweenService:Create(button, TweenInfo.new(0.2), {BackgroundColor3 = Colors.ButtonActive, TextColor3 = Colors.ButtonTextActive}):Play()
+    end)
+    button.MouseLeave:Connect(function()
+        if button.Text:find("ON") then
+            -- Aktiver Zustand bleibt
+        else
+            TweenService:Create(button, TweenInfo.new(0.2), {BackgroundColor3 = Colors.ButtonBg, TextColor3 = Colors.ButtonText}):Play()
+        end
+    end)
+
+    -- Runde Ecken
+    local corner = Instance.new("UICorner")
+    corner.CornerRadius = UDim.new(0, 6)
+    corner.Parent = button
+
+    -- Umrandung
+    local stroke = Instance.new("UIStroke")
+    stroke.Color = Colors.Border
+    stroke.Thickness = 1
+    stroke.Parent = button
+
+    return button
+end
+
+-- Buttons erstellen
+local ESPToggle = CreateButton("ESPToggle", "ESP: OFF", 0.18)
+local AimbotToggle = CreateButton("AimbotToggle", "Aimbot: OFF", 0.29)
+local TeamCheckToggle = CreateButton("TeamCheckToggle", "Team Check: ON", 0.40)
+local WallCheckToggle = CreateButton("WallCheckToggle", "Wall Check: ON", 0.51)
+local FOVToggle = CreateButton("FOVToggle", "FOV Circle: ON", 0.62)
+
+-- Exit Button separat (rot)
+local ExitButton = Instance.new("TextButton")
+ExitButton.Name = "ExitButton"
+ExitButton.Size = UDim2.new(0.85, 0, 0, 30)
+ExitButton.Position = UDim2.new(0.075, 0, 0.76, 0)
+ExitButton.BackgroundColor3 = Colors.ExitButton
+ExitButton.BorderSizePixel = 1
+ExitButton.BorderColor3 = Color3.fromRGB(100, 0, 20)
+ExitButton.Text = "Exit"
+ExitButton.TextColor3 = Color3.fromRGB(0, 0, 0) -- Schwarzer Text
+ExitButton.TextSize = 16
+ExitButton.Font = Enum.Font.GothamBold
+ExitButton.Parent = MainFrame
+
+local ExitStroke = Instance.new("UIStroke")
+ExitStroke.Color = Color3.fromRGB(0, 0, 0) -- Schwarzer Umriss
+ExitStroke.Thickness = 1
+ExitStroke.Parent = ExitButton
+
+local ExitCorner = Instance.new("UICorner")
+ExitCorner.CornerRadius = UDim.new(0, 6)
+ExitCorner.Parent = ExitButton
+
+-- FOV Circles
+local FOVCircle = Drawing.new("Circle")
+FOVCircle.Visible = AimbotSettings.FOVVisible
+FOVCircle.Radius = AimbotSettings.FOVRadius
+FOVCircle.Color = Color3.fromRGB(255, 255, 255)
+FOVCircle.Thickness = 1
+FOVCircle.Filled = false
+FOVCircle.Transparency = 1
+FOVCircle.NumSides = 60
+
+local FOVCircleOutline = Drawing.new("Circle")
+FOVCircleOutline.Visible = AimbotSettings.FOVVisible
+FOVCircleOutline.Radius = AimbotSettings.FOVRadius
+FOVCircleOutline.Color = Color3.fromRGB(160, 32, 240) -- Lila Umriss
+FOVCircleOutline.Thickness = 2
+FOVCircleOutline.Filled = false
+FOVCircleOutline.Transparency = 1
+FOVCircleOutline.NumSides = 60
+
+-- Zuverlässige Enemy-Erkennung
+local function IsEnemy(player)
+    if player == LocalPlayer then 
+        return false 
+    end
+    
+    if not AimbotSettings.TeamCheck then
+        return true
+    end
+    
+    local myTeam = LocalPlayer.Team
+    local theirTeam = player.Team
+    
+    if not myTeam or not theirTeam then return true end
+    
+    return myTeam ~= theirTeam
+end
+
+-- Nur Namen ESP erstellen (statt Strichmännchen)
+local function CreateNameESP(player)
+    if not player or not player.Character then return end
+    
+    -- Überprüfe, ob der ESP für diesen Spieler bereits existiert
+    if ESPObjects[player] and ESPObjects[player].Parent then
+        RemoveESP(player) -- Alten ESP entfernen, falls vorhanden
+    end
+    
+    -- ESP-Container erstellen
+    local ESPFolder = Instance.new("Folder")
+    ESPFolder.Name = "ESP_" .. player.Name
+    ESPFolder.Parent = ScreenGui
+    
+    ESPObjects[player] = ESPFolder
+    
+    -- Hauptkörperteile für den Kopf (für Namens-Tag)
+    local head = player.Character:FindFirstChild("Head")
+    
+    if head then
+        -- Spielernamen anzeigen über dem Kopf
+        local nameTag = Instance.new("BillboardGui")
+        nameTag.Name = "NameESP"
+        nameTag.Size = UDim2.new(0, 200, 0, 50)
+        nameTag.StudsOffset = Vector3.new(0, 2, 0)
+        nameTag.AlwaysOnTop = true
+        nameTag.Adornee = head
+        
+        local nameLabel = Instance.new("TextLabel")
+        nameLabel.Name = "PlayerName"
+        nameLabel.BackgroundTransparency = 1
+        nameLabel.Size = UDim2.new(1, 0, 1, 0)
+        nameLabel.Text = player.Name
+        nameLabel.TextColor3 = Colors.ESP  -- Lila Farbe
+        nameLabel.TextSize = 20 -- Größere Schrift
+        nameLabel.TextStrokeTransparency = 0.3 -- Umriss für bessere Lesbarkeit
+        nameLabel.TextStrokeColor3 = Color3.new(0, 0, 0)
+        nameLabel.Font = Enum.Font.GothamBold
+        nameLabel.Parent = nameTag
+        
+        nameTag.Parent = ESPFolder
+    end
+end
+
+-- ESP entfernen
+local function RemoveESP(player)
+    if ESPObjects[player] then
+        ESPObjects[player]:Destroy()
+        ESPObjects[player] = nil
+    end
+end
+
+-- ESP für alle Spieler aktualisieren
+local function RefreshESP()
+    if not ESPEnabled then return end
+    
+    -- Alle ESPs löschen und neu erstellen
+    for _, folder in pairs(ESPObjects) do
+        if folder then folder:Destroy() end
+    end
+    ESPObjects = {}
+    
+    for _, player in pairs(Players:GetPlayers()) do
+        if player ~= LocalPlayer and player.Character then
+            CreateNameESP(player)
+        end
+    end
+end
+
+-- Aimbot-Funktionen
+local function ConvertVector(Vector)
+    return Vector2.new(Vector.X, Vector.Y)
+end
+
+local function CancelLock()
+    Locked = nil
+    FOVCircle.Color = Color3.fromRGB(255, 255, 255)
+    UserInputService.MouseDeltaSensitivity = OriginalSensitivity
+
+    if Animation then
+        Animation:Cancel()
+    end
+end
+
+local function GetClosestPlayer()
+    local LockPart = AimbotSettings.LockPart
+
+    if not Locked then
+        RequiredDistance = AimbotSettings.FOVVisible and AimbotSettings.FOVRadius or 2000
+
+        for _, player in pairs(Players:GetPlayers()) do
+            local Character = player.Character
+            local Humanoid = Character and Character:FindFirstChildOfClass("Humanoid")
+
+            if player ~= LocalPlayer and Character and Character:FindFirstChild(LockPart) and Humanoid then
+                local PartPosition = Character[LockPart].Position
+
+                if AimbotSettings.TeamCheck and not IsEnemy(player) then
+                    continue
+                end
+
+                if AimbotSettings.AliveCheck and Humanoid.Health <= 0 then
+                    continue
+                end
+
+                if AimbotSettings.WallCheck then
+                    local BlacklistTable = LocalPlayer.Character:GetDescendants()
+                    
+                    for _, Value in pairs(Character:GetDescendants()) do
+                        table.insert(BlacklistTable, Value)
+                    end
+
+                    if #Camera:GetPartsObscuringTarget({PartPosition}, BlacklistTable) > 0 then
+                        continue
+                    end
+                end
+
+                local Vector, OnScreen, Distance = Camera:WorldToViewportPoint(PartPosition)
+                Vector = ConvertVector(Vector)
+                Distance = (UserInputService:GetMouseLocation() - Vector).Magnitude
+
+                if Distance < RequiredDistance and OnScreen then
+                    RequiredDistance, Locked = Distance, player
+                end
+            end
+        end
+    elseif (UserInputService:GetMouseLocation() - ConvertVector(Camera:WorldToViewportPoint(Locked.Character[LockPart].Position))).Magnitude > RequiredDistance then
+        CancelLock()
+    end
+end
+
+-- Event-Management
+local function SetupPlayerTracking()
+    -- Bestehende Spieler registrieren
+    for _, player in pairs(Players:GetPlayers()) do
+        if player ~= LocalPlayer then
+            table.insert(ActivePlayers, player)
+        end
+    end
+    
+    -- Neue Spieler registrieren
+    Players.PlayerAdded:Connect(function(player)
+        table.insert(ActivePlayers, player)
+        if ESPEnabled and player ~= LocalPlayer then
+            task.wait(1) -- Kurze Wartezeit für Charakter-Erstellung
+            if player.Character then
+                CreateNameESP(player)
+            end
+        end
+    end)
+    
+    -- Ausscheidende Spieler entfernen
+    Players.PlayerRemoving:Connect(function(player)
+        RemoveESP(player)
+        for i, p in ipairs(ActivePlayers) do
+            if p == player then
+                table.remove(ActivePlayers, i)
+                break
+            end
+        end
+    end)
+    
+    -- Character-Events
+    local function handleCharacterAdded(player, character)
+        if player == LocalPlayer then return end
+        
+        task.wait(0.5) -- Kurz warten für Charakterladung
+        if ESPEnabled then
+            CreateNameESP(player)
+        end
+    end
+    
+    for _, player in pairs(Players:GetPlayers()) do
+        player.CharacterAdded:Connect(function(character)
+            handleCharacterAdded(player, character)
+        end)
+    end
+    
+    Players.PlayerAdded:Connect(function(player)
+        player.CharacterAdded:Connect(function(character)
+            handleCharacterAdded(player, character)
+        end)
+    end)
+    
+    -- Lokaler Spieler-Respawn
+    if LocalPlayer.Character then
+        LocalPlayer.CharacterAdded:Connect(function()
+            task.wait(1)
+            if ESPEnabled then
+                RefreshESP()
+            end
+        end)
+    end
+end
+
+-- Typing Check
+ServiceConnections.TypingStartedConnection = UserInputService.TextBoxFocused:Connect(function()
+    Typing = true
+end)
+
+ServiceConnections.TypingEndedConnection = UserInputService.TextBoxFocusReleased:Connect(function()
+    Typing = false
+end)
+
+-- Hauptsystem für Updates mit 1-Sekunden-Intervall für ESP
+local function SetupMainLoop()
+    OriginalSensitivity = UserInputService.MouseDeltaSensitivity
+    
+    -- Animation für den lila Rahmen
+    spawn(function()
+        while wait(0.05) do
+            for i = 0, 1, 0.005 do
+                if not MainFrame or not MainFrame.Parent then return end
+                MainFrame.BorderColor3 = Color3.fromHSV(0.75, 1, 1-i/2) -- Lila pulsierend
+                wait(0.05)
+            end
+            for i = 0, 1, 0.005 do
+                if not MainFrame or not MainFrame.Parent then return end
+                MainFrame.BorderColor3 = Color3.fromHSV(0.75, 1, 0.5+i/2) -- Lila pulsierend
+                wait(0.05)
+            end
+        end
+    end)
+    
+    -- RenderStepped für Aimbot (hohe Frequenz)
+    ServiceConnections.RenderSteppedConnection = RunService.RenderStepped:Connect(function()
+        -- FOV-Kreis aktualisieren
+        if AimbotSettings.FOVVisible and AimbotSettings.Enabled then
+            FOVCircle.Visible = true
+            FOVCircleOutline.Visible = true
+            FOVCircle.Position = UserInputService:GetMouseLocation()
+            FOVCircleOutline.Position = UserInputService:GetMouseLocation()
+            FOVCircle.Radius = AimbotSettings.FOVRadius
+            FOVCircleOutline.Radius = AimbotSettings.FOVRadius
+        else
+            FOVCircle.Visible = false
+            FOVCircleOutline.Visible = false
+        end
+        
+        -- Aimbot-Logik
+        if Running and AimbotSettings.Enabled then
+            GetClosestPlayer()
+            
+            local Offset = AimbotSettings.OffsetToMoveDirection and Locked and Locked.Character:FindFirstChildOfClass("Humanoid").MoveDirection * (math.clamp(AimbotSettings.OffsetIncrement, 1, 30) / 10) or Vector3.zero
+            
+            if Locked then
+                local LockedPosition_Vector3 = Locked.Character[AimbotSettings.LockPart].Position
+                local LockedPosition = Camera:WorldToViewportPoint(LockedPosition_Vector3 + Offset)
+                
+                if AimbotSettings.LockMode == 2 then
+                    mousemoverel((LockedPosition.X - UserInputService:GetMouseLocation().X) / AimbotSettings.Sensitivity2, 
+                                (LockedPosition.Y - UserInputService:GetMouseLocation().Y) / AimbotSettings.Sensitivity2)
+                else
+                    if AimbotSettings.Sensitivity > 0 then
+                        Animation = TweenService:Create(Camera, TweenInfo.new(AimbotSettings.Sensitivity, Enum.EasingStyle.Sine, Enum.EasingDirection.Out), 
+                                                    {CFrame = CFrame.new(Camera.CFrame.Position, LockedPosition_Vector3)})
+                        Animation:Play()
+                    else
+                        Camera.CFrame = CFrame.new(Camera.CFrame.Position, LockedPosition_Vector3 + Offset)
+                    end
+                    
+                    UserInputService.MouseDeltaSensitivity = 0
+                end
+                
+                FOVCircle.Color = Color3.fromRGB(160, 32, 240) -- Locked color (lila)
+            end
+        end
+    end)
+    
+    -- 1-Sekunden-Timer für ESP-Refresh
+    spawn(function()
+        while true do
+            if ESPEnabled then
+                RefreshESP()
+            end
+            wait(UpdateRate) -- Jetzt 1 Sekunde warten
+        end
+    end)
+    
+    -- Input-Handling für Aimbot
+    ServiceConnections.InputBeganConnection = UserInputService.InputBegan:Connect(function(Input)
+        local TriggerKey, Toggle = AimbotSettings.TriggerKey, AimbotSettings.Toggle
+        
+        if Typing then return end
+        
+        if Input.UserInputType == Enum.UserInputType.Keyboard and Input.KeyCode == TriggerKey or Input.UserInputType == TriggerKey then
+            if Toggle then
+                Running = not Running
+                
+                if not Running then
+                    CancelLock()
+                end
+            else
+                Running = true
+            end
+        end
+    end)
+    
+    ServiceConnections.InputEndedConnection = UserInputService.InputEnded:Connect(function(Input)
+        local TriggerKey, Toggle = AimbotSettings.TriggerKey, AimbotSettings.Toggle
+        
+        if Toggle or Typing then return end
+        
+        if Input.UserInputType == Enum.UserInputType.Keyboard and Input.KeyCode == TriggerKey or Input.UserInputType == TriggerKey then
+            Running = false
+            CancelLock()
+        end
+    end)
+end
+
+-- GUI-Events mit Animationen
+ESPToggle.MouseButton1Click:Connect(function()
+    ESPEnabled = not ESPEnabled
+    ESPToggle.Text = "ESP: " .. (ESPEnabled and "ON" or "OFF")
+    
+    if ESPEnabled then
+        TweenService:Create(ESPToggle, TweenInfo.new(0.3), {
+            BackgroundColor3 = Colors.ButtonActive,
+            TextColor3 = Colors.ButtonTextActive
+        }):Play()
+        RefreshESP()
+    else
+        TweenService:Create(ESPToggle, TweenInfo.new(0.3), {
+            BackgroundColor3 = Colors.ButtonBg,
+            TextColor3 = Colors.ButtonText
+        }):Play()
+        
+        for player, folder in pairs(ESPObjects) do
+            if folder then folder:Destroy() end
+        end
+        ESPObjects = {}
+    end
+end)
+
+AimbotToggle.MouseButton1Click:Connect(function()
+    AimbotSettings.Enabled = not AimbotSettings.Enabled
+    AimbotToggle.Text = "Aimbot: " .. (AimbotSettings.Enabled and "ON" or "OFF")
+    
+    if AimbotSettings.Enabled then
+        TweenService:Create(AimbotToggle, TweenInfo.new(0.3), {
+            BackgroundColor3 = Colors.ButtonActive,
+            TextColor3 = Colors.ButtonTextActive
+        }):Play()
+    else
+        TweenService:Create(AimbotToggle, TweenInfo.new(0.3), {
+            BackgroundColor3 = Colors.ButtonBg,
+            TextColor3 = Colors.ButtonText
+        }):Play()
+    end
+end)
+
+TeamCheckToggle.MouseButton1Click:Connect(function()
+    AimbotSettings.TeamCheck = not AimbotSettings.TeamCheck
+    TeamCheckToggle.Text = "Team Check: " .. (AimbotSettings.TeamCheck and "ON" or "OFF")
+    
+    if AimbotSettings.TeamCheck then
+        TweenService:Create(TeamCheckToggle, TweenInfo.new(0.3), {
+            BackgroundColor3 = Colors.ButtonActive,
+            TextColor3 = Colors.ButtonTextActive
+        }):Play()
+    else
+        TweenService:Create(TeamCheckToggle, TweenInfo.new(0.3), {
+            BackgroundColor3 = Colors.ButtonBg,
+            TextColor3 = Colors.ButtonText
+        }):Play()
+    end
+end)
+
+WallCheckToggle.MouseButton1Click:Connect(function()
+    AimbotSettings.WallCheck = not AimbotSettings.WallCheck
+    WallCheckToggle.Text = "Wall Check: " .. (AimbotSettings.WallCheck and "ON" or "OFF")
+    
+    if AimbotSettings.WallCheck then
+        TweenService:Create(WallCheckToggle, TweenInfo.new(0.3), {
+            BackgroundColor3 = Colors.ButtonActive,
+            TextColor3 = Colors.ButtonTextActive
+        }):Play()
+    else
+        TweenService:Create(WallCheckToggle, TweenInfo.new(0.3), {
+            BackgroundColor3 = Colors.ButtonBg,
+            TextColor3 = Colors.ButtonText
+        }):Play()
+    end
+end)
+
+FOVToggle.MouseButton1Click:Connect(function()
+    AimbotSettings.FOVVisible = not AimbotSettings.FOVVisible
+    FOVToggle.Text = "FOV Circle: " .. (AimbotSettings.FOVVisible and "ON" or "OFF")
+    
+    if AimbotSettings.FOVVisible then
+        TweenService:Create(FOVToggle, TweenInfo.new(0.3), {
+            BackgroundColor3 = Colors.ButtonActive,
+            TextColor3 = Colors.ButtonTextActive
+        }):Play()
+    else
+        TweenService:Create(FOVToggle, TweenInfo.new(0.3), {
+            BackgroundColor3 = Colors.ButtonBg,
+            TextColor3 = Colors.ButtonText
+        }):Play()
+    end
+end)
+
+ExitButton.MouseButton1Click:Connect(function()
+    -- Ausblenden-Animation
+    local fadeOut = TweenService:Create(MainFrame, TweenInfo.new(0.5), {Size = UDim2.new(0, 0, 0, 0), Position = UDim2.new(0.9, 0, 0.45, 0)})
+    fadeOut:Play()
+    
+    fadeOut.Completed:Connect(function()
+        -- Alle Verbindungen trennen
+        for _, connection in pairs(ServiceConnections) do
+            if connection then connection:Disconnect() end
+        end
+        
+        -- Alle ESPs entfernen
+        for player, folder in pairs(ESPObjects) do
+            if folder then folder:Destroy() end
+        end
+        
+        -- FOV-Kreis entfernen
+        if FOVCircle then FOVCircle:Remove() end
+
+        if FOVCircleOutline then FOVCircleOutline:Remove() end
+        
+        -- GUI entfernen
+        ScreenGui:Destroy()
+    end)
+end)
+
+-- Initialisierung
+SetupPlayerTracking()
+SetupMainLoop()
+
+-- Menü sanft einblenden
+ScreenGui.Enabled = true
+MainFrame.Size = UDim2.new(0, 0, 0, 0)
+MainFrame.Position = UDim2.new(0.9, 0, 0.45, 0)
+TweenService:Create(MainFrame, TweenInfo.new(0.7, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), 
+    {Size = UDim2.new(0, 220, 0, 320), Position = UDim2.new(0.8, 0, 0.3, 0)}):Play()
