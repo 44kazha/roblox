@@ -1,0 +1,122 @@
+-- // Services
+local Players = game:GetService("Players")
+local UIS = game:GetService("UserInputService")
+local Player = Players.LocalPlayer
+
+-- // Load ESP and Aimbot
+local ESP = loadstring(game:HttpGet("https://raw.githubusercontent.com/Exunys/Exunys-ESP/main/src/ESP.lua"))()
+local Aimbot = loadstring(game:HttpGet("https://raw.githubusercontent.com/Exunys/Aimbot-V3/main/src/Aimbot.lua"))()
+
+-- // GUI Setup
+local ScreenGui = Instance.new("ScreenGui", Player:WaitForChild("PlayerGui"))
+ScreenGui.Name = "KazhaMenu"
+
+local Frame = Instance.new("Frame", ScreenGui)
+Frame.Position = UDim2.new(0.8, 0, 0.2, 0)
+Frame.Size = UDim2.new(0, 200, 0, 300)
+Frame.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
+Frame.BorderSizePixel = 0
+
+local TopBar = Instance.new("Frame", Frame)
+TopBar.Size = UDim2.new(1, 0, 0, 30)
+TopBar.BackgroundColor3 = Color3.fromRGB(80, 30, 150)
+TopBar.BorderSizePixel = 0
+
+local Title = Instance.new("TextLabel", TopBar)
+Title.Size = UDim2.new(1, 0, 1, 0)
+Title.Text = "KAZHA MENU"
+Title.TextColor3 = Color3.fromRGB(255, 255, 255)
+Title.BackgroundTransparency = 1
+Title.Font = Enum.Font.SourceSansBold
+Title.TextScaled = true
+
+-- // Button Creator
+local function createButton(text, posY, color)
+    local button = Instance.new("TextButton", Frame)
+    button.Position = UDim2.new(0, 10, 0, 40 + posY)
+    button.Size = UDim2.new(1, -20, 0, 30)
+    button.BackgroundColor3 = color or Color3.fromRGB(30, 30, 30)
+    button.TextColor3 = Color3.fromRGB(255, 255, 255)
+    button.Font = Enum.Font.SourceSansSemibold
+    button.TextScaled = true
+    button.BorderSizePixel = 0
+    button.Text = text
+    return button
+end
+
+-- // Buttons
+local espButton = createButton("ESP: OFF", 0)
+local aimbotButton = createButton("Aimbot: OFF", 40)
+local teamCheckButton = createButton("Team Check: ON", 80, Color3.fromRGB(150, 100, 230))
+local wallCheckButton = createButton("Wall Check: ON", 120, Color3.fromRGB(150, 100, 230))
+local fovCircleButton = createButton("FOV Circle: ON", 160, Color3.fromRGB(150, 100, 230))
+local exitButton = createButton("Exit", 220, Color3.fromRGB(170, 30, 50))
+
+-- // States
+local espEnabled = false
+local aimbotEnabled = false
+
+-- // Button Actions
+espButton.MouseButton1Click:Connect(function()
+    espEnabled = not espEnabled
+    espButton.Text = "ESP: " .. (espEnabled and "ON" or "OFF")
+    if espEnabled then ESP:Load() else ESP:Unload() end
+end)
+
+aimbotButton.MouseButton1Click:Connect(function()
+    aimbotEnabled = not aimbotEnabled
+    aimbotButton.Text = "Aimbot: " .. (aimbotEnabled and "ON" or "OFF")
+    Aimbot.Settings.Enabled = aimbotEnabled
+end)
+
+teamCheckButton.MouseButton1Click:Connect(function()
+    Aimbot.Settings.TeamCheck = not Aimbot.Settings.TeamCheck
+    teamCheckButton.Text = "Team Check: " .. (Aimbot.Settings.TeamCheck and "ON" or "OFF")
+end)
+
+wallCheckButton.MouseButton1Click:Connect(function()
+    Aimbot.Settings.WallCheck = not Aimbot.Settings.WallCheck
+    wallCheckButton.Text = "Wall Check: " .. (Aimbot.Settings.WallCheck and "ON" or "OFF")
+end)
+
+fovCircleButton.MouseButton1Click:Connect(function()
+    Aimbot.Settings.FOVSettings.Visible = not Aimbot.Settings.FOVSettings.Visible
+    fovCircleButton.Text = "FOV Circle: " .. (Aimbot.Settings.FOVSettings.Visible and "ON" or "OFF")
+end)
+
+exitButton.MouseButton1Click:Connect(function()
+    ScreenGui:Destroy()
+end)
+
+-- // Dragging TopBar
+local dragging, dragInput, dragStart, startPos
+
+local function update(input)
+    local delta = input.Position - dragStart
+    Frame.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+end
+
+TopBar.InputBegan:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 then
+        dragging = true
+        dragStart = input.Position
+        startPos = Frame.Position
+        input.Changed:Connect(function()
+            if input.UserInputState == Enum.UserInputState.End then
+                dragging = false
+            end
+        end)
+    end
+end)
+
+TopBar.InputChanged:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseMovement then
+        dragInput = input
+    end
+end)
+
+UIS.InputChanged:Connect(function(input)
+    if input == dragInput and dragging then
+        update(input)
+    end
+end)
